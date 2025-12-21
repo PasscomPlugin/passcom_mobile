@@ -16,6 +16,9 @@ export default function TasksPage() {
   const [isDoneTasksExpanded, setIsDoneTasksExpanded] = useState(true)
   const [isDateOpen, setIsDateOpen] = useState(false)
   const [viewMode, setViewMode] = useState<"Day" | "Week" | "Month">("Day")
+  const [taskView, setTaskView] = useState<"my-tasks" | "tasks-i-made">("my-tasks")
+  const [isSearchOpen, setIsSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
 
   const [tasks, setTasks] = useState([
     {
@@ -151,13 +154,89 @@ export default function TasksPage() {
   }
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="bg-white px-4 py-4 flex items-center gap-2 border-b">
+      {/* Upper Control Bar - Task View Toggle / Search */}
+      <div className="bg-white px-4 py-4 flex items-center gap-2">
         {/* Back arrow */}
         <button onClick={() => router.back()} className="h-auto p-3 shrink-0 flex items-center justify-center">
           <ChevronLeft size={24} strokeWidth={3} />
         </button>
 
-        {/* Date Range Selector - fills available width */}
+        {!isSearchOpen ? (
+          <>
+            {/* Task View Toggle - default state */}
+            <div className="flex gap-2 bg-gray-200 rounded-full p-1 flex-1 min-w-0 h-12">
+              <button
+                onClick={() => setTaskView("my-tasks")}
+                className={`flex-1 px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                  taskView === "my-tasks"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                My tasks
+              </button>
+              <button
+                onClick={() => setTaskView("tasks-i-made")}
+                className={`flex-1 px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${
+                  taskView === "tasks-i-made"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-600 hover:text-gray-900"
+                }`}
+              >
+                Tasks I made
+              </button>
+            </div>
+
+            {/* Right side icons - default state */}
+            <div className="flex items-center gap-1 shrink-0">
+              <button 
+                onClick={() => setIsSearchOpen(true)}
+                className="h-auto p-3 bg-gray-100 rounded-full hover:bg-gray-200 flex items-center justify-center"
+              >
+                <Search size={24} />
+              </button>
+              <button className="h-auto p-3 bg-gray-100 rounded-full hover:bg-gray-200 flex items-center justify-center">
+                <Settings size={24} />
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            {/* Search mode - expanded search box */}
+            <div className="flex items-center bg-gray-100 rounded-full px-4 py-2 gap-3 flex-1 min-w-0 h-12">
+              <Search size={20} className="text-gray-400 shrink-0" />
+              <input
+                type="text"
+                placeholder="Search"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="flex-1 bg-transparent text-gray-900 placeholder:text-gray-400 outline-none text-sm"
+                autoFocus
+              />
+            </div>
+
+            {/* Close button */}
+            <button
+              onClick={() => {
+                setIsSearchOpen(false)
+                setSearchQuery("")
+              }}
+              className="text-blue-500 font-medium text-base px-2 shrink-0"
+            >
+              Close
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* Lower Control Bar - Date Range Selector */}
+      <div className="bg-white px-4 py-4 flex items-center gap-2 border-b">
+        {/* Filter icon - moved from upper bar */}
+        <button className="h-auto p-3 bg-gray-100 rounded-full hover:bg-gray-200 flex items-center justify-center shrink-0">
+          <SlidersHorizontal size={24} />
+        </button>
+
+        {/* Date Range Selector with Popover */}
         <div className="flex items-center bg-gray-100 rounded-full px-3 py-2 gap-2 flex-1 min-w-0 h-12">
           <button onClick={goToPreviousDay} className="h-auto p-3 shrink-0 flex items-center justify-center">
             <ChevronLeft size={24} />
@@ -206,25 +285,14 @@ export default function TasksPage() {
           </button>
         </div>
 
-        {/* Right side icons - icons now 60px, circles 48px matching date area */}
-        <div className="flex items-center gap-1 shrink-0">
-          <button className="h-auto p-3 bg-gray-100 rounded-full hover:bg-gray-200 flex items-center justify-center">
-            <Search size={24} />
-          </button>
-          <button className="h-auto p-3 bg-gray-100 rounded-full hover:bg-gray-200 flex items-center justify-center">
-            <SlidersHorizontal size={24} />
-          </button>
-          <button className="h-auto p-3 bg-gray-100 rounded-full hover:bg-gray-200 flex items-center justify-center">
-            <Eye size={24} />
-          </button>
-          <button className="h-auto p-3 bg-gray-100 rounded-full hover:bg-gray-200 relative flex items-center justify-center">
-            <Bell size={24} />
-            <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
-          </button>
-          <button className="h-auto p-3 bg-gray-100 rounded-full hover:bg-gray-200 flex items-center justify-center">
-            <Settings size={24} />
-          </button>
-        </div>
+        {/* Bell icon - moved from upper bar */}
+        <button 
+          onClick={() => router.push('/notifications')}
+          className="h-auto p-3 bg-gray-100 rounded-full hover:bg-gray-200 relative flex items-center justify-center"
+        >
+          <Bell size={24} />
+          <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
+        </button>
       </div>
 
       {/* Tasks Content */}
