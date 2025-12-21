@@ -1,6 +1,13 @@
 "use client"
 
+import { useState } from "react"
 import { X, ChevronLeft, ChevronRight } from "lucide-react"
+import DateRangeModal from "@/components/DateRangeModal"
+
+interface DateRange {
+  start: Date
+  end: Date
+}
 
 interface SortDateSheetProps {
   isVisible: boolean
@@ -8,7 +15,8 @@ interface SortDateSheetProps {
   onBack: () => void
   activeSortOption: string
   onSelectSortOption: (option: string) => void
-  onOpenRangeFilter: () => void
+  selectedRange: DateRange | null
+  onApplyRange: (range: DateRange | null) => void
 }
 
 export default function SortDateSheet({
@@ -17,8 +25,11 @@ export default function SortDateSheet({
   onBack,
   activeSortOption,
   onSelectSortOption,
-  onOpenRangeFilter,
+  selectedRange,
+  onApplyRange,
 }: SortDateSheetProps) {
+  const [isRangeModalVisible, setIsRangeModalVisible] = useState(false)
+
   if (!isVisible) return null
 
   const dateSortOptions = [
@@ -31,6 +42,18 @@ export default function SortDateSheet({
   const handleSortSelect = (optionId: string) => {
     onSelectSortOption(optionId)
     onClose()
+  }
+
+  const formatRangeDisplay = (range: DateRange) => {
+    const formatShort = (date: Date) => {
+      return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    }
+    return `${formatShort(range.start)} - ${formatShort(range.end)}`
+  }
+
+  const handleClearRange = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    onApplyRange(null)
   }
 
   return (
@@ -93,17 +116,41 @@ export default function SortDateSheet({
             <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Filter</h3>
           </div>
           <button
-            onClick={onOpenRangeFilter}
+            onClick={() => setIsRangeModalVisible(true)}
             className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-100 transition-colors min-h-[56px] bg-white"
           >
-            <span className="text-base text-gray-900">Filter by specific date range</span>
+            <span className={`text-base ${selectedRange ? "text-blue-500 font-semibold" : "text-gray-900"}`}>
+              {selectedRange ? formatRangeDisplay(selectedRange) : "Filter by specific date range"}
+            </span>
             <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-400">None</span>
-              <ChevronRight className="h-5 w-5 text-gray-400 shrink-0" />
+              {selectedRange ? (
+                <button
+                  onClick={handleClearRange}
+                  className="h-6 w-6 flex items-center justify-center rounded-full hover:bg-gray-200 transition-colors"
+                >
+                  <X className="h-4 w-4 text-gray-600" />
+                </button>
+              ) : (
+                <>
+                  <span className="text-sm text-gray-400">None</span>
+                  <ChevronRight className="h-5 w-5 text-gray-400 shrink-0" />
+                </>
+              )}
             </div>
           </button>
         </div>
       </div>
+
+      {/* Date Range Modal */}
+      <DateRangeModal
+        isVisible={isRangeModalVisible}
+        onClose={() => setIsRangeModalVisible(false)}
+        onApply={(range) => {
+          onApplyRange(range)
+          setIsRangeModalVisible(false)
+        }}
+        initialRange={selectedRange}
+      />
     </>
   )
 }

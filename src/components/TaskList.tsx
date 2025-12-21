@@ -28,6 +28,7 @@ export default function TasksPage() {
   const [currentViewMode, setCurrentViewMode] = useState<"list" | "calendar">("list")
   const [isDateSortSheetVisible, setIsDateSortSheetVisible] = useState(false)
   const [selectedDateSortOption, setSelectedDateSortOption] = useState("due-earliest")
+  const [selectedDateRange, setSelectedDateRange] = useState<{ start: Date; end: Date } | null>(null)
 
   const [tasks, setTasks] = useState([
     {
@@ -182,12 +183,6 @@ export default function TasksPage() {
   const handleCloseAllSheets = () => {
     setIsViewTasksSheetVisible(false)
     setIsDateSortSheetVisible(false)
-  }
-
-  // Placeholder for future Date Range filter
-  const handleOpenRangeFilter = () => {
-    console.log("Open Date Range Filter - To be implemented")
-    // Future: Open date range picker sheet
   }
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -463,7 +458,8 @@ export default function TasksPage() {
         onBack={handleBackToViewTasks}
         activeSortOption={selectedDateSortOption}
         onSelectSortOption={setSelectedDateSortOption}
-        onOpenRangeFilter={handleOpenRangeFilter}
+        selectedRange={selectedDateRange}
+        onApplyRange={setSelectedDateRange}
       />
     </div>
   )
