@@ -2,18 +2,18 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronLeft, ChevronRight, ChevronDown, AlertTriangle, Search, SlidersHorizontal, Bell, Eye } from "lucide-react"
+import { ChevronLeft, ChevronRight, ChevronDown, AlertTriangle, Search, SlidersHorizontal, Bell } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Calendar } from "@/components/ui/calendar"
-import SortMenuSheet from "@/components/SortMenuSheet"
 import ViewTasksSheet from "@/components/ViewTasksSheet"
 import SortDateSheet from "@/components/SortDateSheet"
 import SortStatusSheet from "@/components/SortStatusSheet"
 import SortLabelSheet from "@/components/SortLabelSheet"
 import SortUserSheet from "@/components/SortUserSheet"
 import CalendarAgendaView from "@/components/CalendarAgendaView"
+import OverdueTasksModal from "@/components/OverdueTasksModal"
 
 export default function TasksPage() {
   const router = useRouter()
@@ -49,7 +49,6 @@ export default function TasksPage() {
   const [taskView, setTaskView] = useState<"my-tasks" | "tasks-i-made">("my-tasks")
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
-  const [isSortSheetVisible, setIsSortSheetVisible] = useState(false)
   const [selectedSortCategory, setSelectedSortCategory] = useState("Date")
   const [isViewTasksSheetVisible, setIsViewTasksSheetVisible] = useState(false)
   const [currentViewMode, setCurrentViewMode] = useState<"list" | "calendar">("list")
@@ -64,51 +63,87 @@ export default function TasksPage() {
   const [creatorFilters, setCreatorFilters] = useState<string[]>([])
   const [isAssigneeSheetVisible, setIsAssigneeSheetVisible] = useState(false)
   const [assigneeFilters, setAssigneeFilters] = useState<string[]>([])
+  const [isOverdueModalVisible, setIsOverdueModalVisible] = useState(false)
 
   const [tasks, setTasks] = useState([
     {
-      id: 1,
+      id: "1",
       title: "Fix the Whiteboard",
       subtitle: "Starts Dec 16 4:33 PM - Due Dec 16 5:33 PM",
       priority: "Draft",
       completed: false,
+      status: "open",
       dueDate: new Date(2024, 11, 16), // Dec 16, 2024
+      startTime: new Date(2024, 11, 16, 16, 33).toISOString(),
+      dueTime: new Date(2024, 11, 16, 17, 33).toISOString(),
+      assignedTo: currentUserId,
+      createdBy: currentUserId,
+      labels: ["Maintenance"],
+      comments: 2,
     },
     {
-      id: 2,
+      id: "2",
       title: "Update Documentation",
       subtitle: "Starts Dec 17 9:00 AM - Due Dec 17 11:00 AM",
       priority: "High",
       completed: false,
+      status: "open",
       dueDate: new Date(2024, 11, 17), // Dec 17, 2024
+      startTime: new Date(2024, 11, 17, 9, 0).toISOString(),
+      dueTime: new Date(2024, 11, 17, 11, 0).toISOString(),
+      assignedTo: currentUserId,
+      createdBy: "user-2",
+      labels: ["Documentation"],
+      comments: 0,
     },
     {
-      id: 3,
+      id: "3",
       title: "Wash Hands",
       subtitle: "Starts Dec 16 4:34 PM - Due Dec 16 5:34 PM",
       completed: true,
+      status: "done",
       dueDate: new Date(2024, 11, 16), // Dec 16, 2024
+      startTime: new Date(2024, 11, 16, 16, 34).toISOString(),
+      dueTime: new Date(2024, 11, 16, 17, 34).toISOString(),
+      assignedTo: currentUserId,
+      createdBy: currentUserId,
+      labels: ["Personal"],
+      comments: 1,
     },
     {
-      id: 4,
+      id: "4",
       title: "Review Code Changes",
       subtitle: "Starts Dec 18 2:00 PM - Due Dec 18 4:00 PM",
       completed: true,
+      status: "done",
       dueDate: new Date(2024, 11, 18), // Dec 18, 2024
+      startTime: new Date(2024, 11, 18, 14, 0).toISOString(),
+      dueTime: new Date(2024, 11, 18, 16, 0).toISOString(),
+      assignedTo: "user-2",
+      createdBy: currentUserId,
+      labels: ["Code Review"],
+      comments: 3,
     },
     {
-      id: 5,
+      id: "5",
       title: "Team Standup Meeting",
       subtitle: "Starts Dec 19 10:00 AM - Due Dec 19 10:30 AM",
       completed: true,
+      status: "done",
       dueDate: new Date(2024, 11, 19), // Dec 19, 2024
+      startTime: new Date(2024, 11, 19, 10, 0).toISOString(),
+      dueTime: new Date(2024, 11, 19, 10, 30).toISOString(),
+      assignedTo: currentUserId,
+      createdBy: "user-3",
+      labels: ["Meeting"],
+      comments: 0,
     },
   ])
 
-  const toggleTask = (id: number) => {
+  const toggleTask = (id: string | number) => {
     setTasks((prevTasks) =>
       prevTasks.map((task) =>
-        task.id === id ? { ...task, completed: !task.completed } : task
+        task.id === String(id) ? { ...task, completed: !task.completed, status: task.completed ? "open" : "done" } : task
       )
     )
   }
@@ -299,7 +334,10 @@ export default function TasksPage() {
               >
                 <Search size={24} />
               </button>
-              <button className="h-auto p-3 bg-gray-100 rounded-full hover:bg-gray-200 relative flex items-center justify-center">
+              <button 
+                onClick={() => setIsOverdueModalVisible(true)}
+                className="h-auto p-3 bg-gray-100 rounded-full hover:bg-gray-200 relative flex items-center justify-center"
+              >
                 <AlertTriangle size={24} />
                 {hasOverdueTasks && (
                   <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
@@ -338,9 +376,9 @@ export default function TasksPage() {
 
       {/* Lower Control Bar - Date Range Selector */}
       <div className="bg-white px-4 py-4 flex items-center gap-2 border-b">
-        {/* Filter icon - moved from upper bar */}
+        {/* View Tasks icon */}
         <button 
-          onClick={() => setIsSortSheetVisible(true)}
+          onClick={() => setIsViewTasksSheetVisible(true)}
           className="h-auto p-3 bg-gray-100 rounded-full hover:bg-gray-200 flex items-center justify-center shrink-0"
         >
           <SlidersHorizontal size={24} />
@@ -401,14 +439,6 @@ export default function TasksPage() {
           className="h-auto p-3 bg-gray-100 rounded-full hover:bg-gray-200 flex items-center justify-center"
         >
           <Bell size={24} />
-        </button>
-
-        {/* Eye icon - View Tasks */}
-        <button 
-          onClick={() => setIsViewTasksSheetVisible(true)}
-          className="h-auto p-3 bg-gray-100 rounded-full hover:bg-gray-200 flex items-center justify-center"
-        >
-          <Eye size={24} />
         </button>
       </div>
 
@@ -522,14 +552,6 @@ export default function TasksPage() {
         </>
       )}
 
-      {/* Sort Menu Bottom Sheet */}
-      <SortMenuSheet
-        isVisible={isSortSheetVisible}
-        onClose={() => setIsSortSheetVisible(false)}
-        activeCategory={selectedSortCategory}
-        onSelectCategory={setSelectedSortCategory}
-      />
-
       {/* View Tasks Bottom Sheet */}
       <ViewTasksSheet
         isVisible={isViewTasksSheetVisible}
@@ -596,6 +618,15 @@ export default function TasksPage() {
         users={allUsers}
         activeUserIds={assigneeFilters}
         onApplyFilters={setAssigneeFilters}
+        currentUserId={currentUserId}
+      />
+
+      {/* Overdue Tasks Modal */}
+      <OverdueTasksModal
+        isVisible={isOverdueModalVisible}
+        onClose={() => setIsOverdueModalVisible(false)}
+        tasks={tasks}
+        onMarkDone={toggleTask}
         currentUserId={currentUserId}
       />
     </div>
