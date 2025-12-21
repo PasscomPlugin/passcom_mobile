@@ -1,6 +1,5 @@
 "use client"
 
-import { ChevronLeft, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 interface Task {
@@ -131,28 +130,7 @@ export default function CalendarAgendaView({
   const agendaDays = generateDays()
 
   return (
-    <div className="flex flex-col h-full bg-gray-50">
-      {/* Date Range Indicator */}
-      <div className="bg-white px-4 py-4 border-b">
-        <div className="flex items-center justify-center gap-2">
-          <button
-            onClick={onPreviousRange}
-            className="h-10 w-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
-          >
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <div className="px-6 py-2 bg-gray-100 rounded-full">
-            <span className="text-sm font-medium text-gray-700">{formatDateRange()}</span>
-          </div>
-          <button
-            onClick={onNextRange}
-            className="h-10 w-10 rounded-full hover:bg-gray-100 flex items-center justify-center transition-colors"
-          >
-            <ChevronRight className="h-5 w-5" />
-          </button>
-        </div>
-      </div>
-
+    <div className="flex flex-col h-full bg-gray-50 relative">
       {/* Agenda List */}
       <div className="flex-1 overflow-y-auto px-4 pb-24 bg-white">
         {agendaDays.map((day, index) => {
@@ -202,11 +180,11 @@ export default function CalendarAgendaView({
         })}
       </div>
 
-      {/* Floating Action Button */}
-      <div className="absolute bottom-6 left-0 right-0 flex justify-center px-4">
+      {/* Fixed Action Button */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4">
         <Button
           onClick={onCreateTask}
-          className="w-full max-w-md h-14 bg-cyan-400 hover:bg-cyan-500 text-white text-base font-medium rounded-full shadow-lg"
+          className="w-full h-14 bg-cyan-400 hover:bg-cyan-500 text-white text-base font-medium rounded-full"
         >
           Create task
         </Button>
