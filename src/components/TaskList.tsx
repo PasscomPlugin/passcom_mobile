@@ -343,10 +343,9 @@ export default function TasksPage() {
               {hasOverdueTasks && (
                 <button 
                   onClick={() => setIsOverdueModalVisible(true)}
-                  className="h-auto p-3 bg-gray-100 rounded-full hover:bg-gray-200 relative flex items-center justify-center"
+                  className="h-auto p-3 bg-gray-100 rounded-full hover:bg-gray-200 flex items-center justify-center"
                 >
                   <AlertTriangle size={24} className="text-red-600" />
-                  <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
                 </button>
               )}
             </div>
