@@ -151,9 +151,14 @@ export default function TasksPage() {
   const openTasks = tasks.filter((task) => !task.completed)
   const completedTasks = tasks.filter((task) => task.completed)
 
-  // Check for overdue tasks (for demo: any open tasks count as "overdue")
-  // In production, this would check actual due dates against current date
-  const hasOverdueTasks = openTasks.length > 0
+  // Calculate actual overdue tasks
+  const overdueTasks = tasks.filter(task => {
+    if (!task.dueTime) return false
+    const dueDate = new Date(task.dueTime)
+    const now = new Date()
+    return dueDate < now && task.status !== 'done'
+  })
+  const hasOverdueTasks = overdueTasks.length > 0
 
   // Date navigation functions
   const goToPreviousDay = () => {
@@ -334,15 +339,16 @@ export default function TasksPage() {
               >
                 <Search size={24} />
               </button>
-              <button 
-                onClick={() => setIsOverdueModalVisible(true)}
-                className="h-auto p-3 bg-gray-100 rounded-full hover:bg-gray-200 relative flex items-center justify-center"
-              >
-                <AlertTriangle size={24} />
-                {hasOverdueTasks && (
+              {/* Only show AlertTriangle if there are overdue tasks */}
+              {hasOverdueTasks && (
+                <button 
+                  onClick={() => setIsOverdueModalVisible(true)}
+                  className="h-auto p-3 bg-gray-100 rounded-full hover:bg-gray-200 relative flex items-center justify-center"
+                >
+                  <AlertTriangle size={24} className="text-red-600" />
                   <span className="absolute top-1 right-1 h-2 w-2 bg-red-500 rounded-full" />
-                )}
-              </button>
+                </button>
+              )}
             </div>
           </>
         ) : (
