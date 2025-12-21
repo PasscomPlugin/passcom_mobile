@@ -10,6 +10,7 @@ import { Calendar } from "@/components/ui/calendar"
 import SortMenuSheet from "@/components/SortMenuSheet"
 import ViewTasksSheet from "@/components/ViewTasksSheet"
 import SortDateSheet from "@/components/SortDateSheet"
+import SortStatusSheet from "@/components/SortStatusSheet"
 
 export default function TasksPage() {
   const router = useRouter()
@@ -29,6 +30,8 @@ export default function TasksPage() {
   const [isDateSortSheetVisible, setIsDateSortSheetVisible] = useState(false)
   const [selectedDateSortOption, setSelectedDateSortOption] = useState("due-earliest")
   const [selectedDateRange, setSelectedDateRange] = useState<{ start: Date; end: Date } | null>(null)
+  const [isStatusSheetVisible, setIsStatusSheetVisible] = useState(false)
+  const [statusFilters, setStatusFilters] = useState<string[]>([])
 
   const [tasks, setTasks] = useState([
     {
@@ -173,9 +176,16 @@ export default function TasksPage() {
     setIsDateSortSheetVisible(true)
   }
 
+  // Handler to open Status Filter sheet from View Tasks sheet
+  const handleOpenStatusFilter = () => {
+    setIsViewTasksSheetVisible(false)
+    setIsStatusSheetVisible(true)
+  }
+
   // Handler to go back from Date Sort sheet to View Tasks sheet
   const handleBackToViewTasks = () => {
     setIsDateSortSheetVisible(false)
+    setIsStatusSheetVisible(false)
     setIsViewTasksSheetVisible(true)
   }
 
@@ -183,6 +193,7 @@ export default function TasksPage() {
   const handleCloseAllSheets = () => {
     setIsViewTasksSheetVisible(false)
     setIsDateSortSheetVisible(false)
+    setIsStatusSheetVisible(false)
   }
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -449,6 +460,7 @@ export default function TasksPage() {
         activeSortCategory={selectedSortCategory}
         onSelectSortCategory={setSelectedSortCategory}
         onOpenDateSort={handleOpenDateSort}
+        onOpenStatusFilter={handleOpenStatusFilter}
       />
 
       {/* Sort by Date Bottom Sheet */}
@@ -460,6 +472,15 @@ export default function TasksPage() {
         onSelectSortOption={setSelectedDateSortOption}
         selectedRange={selectedDateRange}
         onApplyRange={setSelectedDateRange}
+      />
+
+      {/* Sort by Status Bottom Sheet */}
+      <SortStatusSheet
+        isVisible={isStatusSheetVisible}
+        onClose={handleCloseAllSheets}
+        onBack={handleBackToViewTasks}
+        activeFilters={statusFilters}
+        onApplyFilters={setStatusFilters}
       />
     </div>
   )

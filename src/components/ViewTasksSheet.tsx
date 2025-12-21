@@ -10,6 +10,7 @@ interface ViewTasksSheetProps {
   activeSortCategory: string
   onSelectSortCategory: (category: string) => void
   onOpenDateSort: () => void
+  onOpenStatusFilter: () => void
 }
 
 export default function ViewTasksSheet({
@@ -20,6 +21,7 @@ export default function ViewTasksSheet({
   activeSortCategory,
   onSelectSortCategory,
   onOpenDateSort,
+  onOpenStatusFilter,
 }: ViewTasksSheetProps) {
   if (!isVisible) return null
 
@@ -34,6 +36,8 @@ export default function ViewTasksSheet({
   const handleSortItemClick = (label: string) => {
     if (label === "Date") {
       onOpenDateSort()
+    } else if (label === "Status") {
+      onOpenStatusFilter()
     } else {
       onSelectSortCategory(label)
       onClose()
