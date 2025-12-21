@@ -153,14 +153,90 @@ export default function TasksPage() {
   const openTasks = filteredTasks.filter((task) => !task.completed)
   const completedTasks = filteredTasks.filter((task) => task.completed)
 
-  // Calculate actual overdue tasks
-  const overdueTasks = tasks.filter(task => {
-    if (!task.dueTime) return false
-    const dueDate = new Date(task.dueTime)
+  // Calculate actual overdue tasks with strict validation
+  const overdueTasks = useMemo(() => {
     const now = new Date()
-    return dueDate < now && task.status !== 'done'
-  })
+    const filtered = tasks.filter(task => {
+      // Validate dueTime exists
+      if (!task.dueTime) {
+        return false
+      }
+      
+      // Parse and validate due date
+      const dueDate = new Date(task.dueTime)
+      if (isNaN(dueDate.getTime())) {
+        console.warn('Invalid dueTime for task:', task.id, task.dueTime)
+        return false
+      }
+      
+      // Strictly check if task is not done
+      const isDone = task.status?.toLowerCase() === 'done' || task.completed === true
+      if (isDone) {
+        return false
+      }
+      
+      // Check if due date is in the past
+      const isOverdue = dueDate.getTime() < now.getTime()
+      
+      return isOverdue
+    })
+    
+    console.log('Overdue Tasks Calculation:', {
+      totalTasks: tasks.length,
+      overdueCount: filtered.length,
+      now: now.toISOString(),
+      overdueTasks: filtered.map(t => ({
+        id: t.id,
+        title: t.title,
+        dueTime: t.dueTime,
+        status: t.status,
+        completed: t.completed
+      }))
+    })
+    
+    return filtered
+  }, [tasks])
+  
   const hasOverdueTasks = overdueTasks.length > 0
+
+  // Calculate filter counts for sub-menus
+  const filterCounts = useMemo(() => {
+    const statusCounts: Record<string, number> = {}
+    const labelCounts: Record<string, number> = {}
+    const assigneeCounts: Record<string, number> = {}
+    const creatorCounts: Record<string, number> = {}
+
+    tasks.forEach(task => {
+      // Count by status
+      if (task.status) {
+        statusCounts[task.status] = (statusCounts[task.status] || 0) + 1
+      }
+
+      // Count by labels
+      if (task.labels && Array.isArray(task.labels)) {
+        task.labels.forEach(label => {
+          labelCounts[label] = (labelCounts[label] || 0) + 1
+        })
+      }
+
+      // Count by assignee
+      if (task.assigneeId) {
+        assigneeCounts[task.assigneeId] = (assigneeCounts[task.assigneeId] || 0) + 1
+      }
+
+      // Count by creator
+      if (task.creatorId) {
+        creatorCounts[task.creatorId] = (creatorCounts[task.creatorId] || 0) + 1
+      }
+    })
+
+    return {
+      status: statusCounts,
+      labels: labelCounts,
+      assignees: assigneeCounts,
+      creators: creatorCounts
+    }
+  }, [tasks])
 
   // Date navigation functions
   const goToPreviousDay = () => {
@@ -592,6 +668,7 @@ export default function TasksPage() {
         onBack={handleBackToViewTasks}
         activeFilters={statusFilters}
         onApplyFilters={setStatusFilters}
+        counts={filterCounts.status}
       />
 
       {/* Sort by Label Bottom Sheet */}
@@ -602,6 +679,7 @@ export default function TasksPage() {
         availableLabels={availableLabels}
         activeLabelIds={labelFilters}
         onApplyFilters={setLabelFilters}
+        counts={filterCounts.labels}
       />
 
       {/* Sort by Creator Bottom Sheet */}
@@ -614,6 +692,7 @@ export default function TasksPage() {
         activeUserIds={creatorFilters}
         onApplyFilters={setCreatorFilters}
         currentUserId={currentUserId}
+        counts={filterCounts.creators}
       />
 
       {/* Sort by Assignee Bottom Sheet */}
@@ -626,6 +705,7 @@ export default function TasksPage() {
         activeUserIds={assigneeFilters}
         onApplyFilters={setAssigneeFilters}
         currentUserId={currentUserId}
+        counts={filterCounts.assignees}
       />
 
       {/* Overdue Tasks Modal */}

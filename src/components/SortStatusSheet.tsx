@@ -10,6 +10,7 @@ interface SortStatusSheetProps {
   onBack: () => void
   activeFilters: string[]
   onApplyFilters: (selectedStatuses: string[]) => void
+  counts?: Record<string, number>
 }
 
 export default function SortStatusSheet({
@@ -18,6 +19,7 @@ export default function SortStatusSheet({
   onBack,
   activeFilters,
   onApplyFilters,
+  counts = {},
 }: SortStatusSheetProps) {
   const [tempSelected, setTempSelected] = useState<string[]>(activeFilters)
 
@@ -31,10 +33,10 @@ export default function SortStatusSheet({
   if (!isVisible) return null
 
   const statusOptions = [
-    { id: "overdue", label: "Late", color: "text-red-600" },
+    { id: "late", label: "Late", color: "text-red-600" },
     { id: "new", label: "New", color: "text-gray-900" },
-    { id: "open", label: "Open", color: "text-gray-900" },
-    { id: "completed", label: "Done", color: "text-gray-900" },
+    { id: "to do", label: "To Do", color: "text-gray-900" },
+    { id: "done", label: "Done", color: "text-gray-900" },
   ]
 
   const handleStatusToggle = (statusId: string) => {
@@ -90,13 +92,13 @@ export default function SortStatusSheet({
                 <span
                   className={`text-base ${status.color} ${tempSelected.includes(status.id) ? "font-bold" : "font-normal"}`}
                 >
-                  {status.label}
+                  {status.label} {counts[status.id] !== undefined && `(${counts[status.id]})`}
                 </span>
                 <div className="flex items-center">
                   <div
                     className={`h-6 w-6 rounded border-2 flex items-center justify-center transition-colors ${
                       tempSelected.includes(status.id)
-                        ? status.id === "overdue"
+                        ? status.id === "late"
                           ? "bg-red-500 border-red-500"
                           : "bg-blue-500 border-blue-500"
                         : "border-gray-300"

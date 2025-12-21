@@ -20,6 +20,7 @@ interface SortUserSheetProps {
   activeUserIds: string[]
   onApplyFilters: (selectedIds: string[]) => void
   currentUserId: string
+  counts?: Record<string, number>
 }
 
 export default function SortUserSheet({
@@ -31,6 +32,7 @@ export default function SortUserSheet({
   activeUserIds,
   onApplyFilters,
   currentUserId,
+  counts = {},
 }: SortUserSheetProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [tempSelected, setTempSelected] = useState<string[]>(activeUserIds)
@@ -136,7 +138,7 @@ export default function SortUserSheet({
                       tempSelected.includes(user.id) ? "font-bold text-gray-900" : "text-gray-900"
                     }`}
                   >
-                    {user.name}
+                    {user.name} {counts[user.id] !== undefined && `(${counts[user.id]})`}
                   </span>
 
                   {/* Checkbox */}

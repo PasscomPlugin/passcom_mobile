@@ -17,6 +17,7 @@ interface SortLabelSheetProps {
   availableLabels: Label[]
   activeLabelIds: string[]
   onApplyFilters: (selectedLabelIds: string[]) => void
+  counts?: Record<string, number>
 }
 
 export default function SortLabelSheet({
@@ -26,6 +27,7 @@ export default function SortLabelSheet({
   availableLabels,
   activeLabelIds,
   onApplyFilters,
+  counts = {},
 }: SortLabelSheetProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [tempSelected, setTempSelected] = useState<string[]>(activeLabelIds)
@@ -118,7 +120,7 @@ export default function SortLabelSheet({
                     <span
                       className={`text-base text-gray-900 ${tempSelected.includes(label.id) ? "font-bold" : "font-normal"}`}
                     >
-                      {label.name}
+                      {label.name} {counts[label.id] !== undefined && `(${counts[label.id]})`}
                     </span>
                   </div>
                   <div className="flex items-center">
