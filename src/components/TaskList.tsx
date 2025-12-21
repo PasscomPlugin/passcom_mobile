@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import SortMenuSheet from "@/components/SortMenuSheet"
 import ViewTasksSheet from "@/components/ViewTasksSheet"
+import SortDateSheet from "@/components/SortDateSheet"
 
 export default function TasksPage() {
   const router = useRouter()
@@ -25,6 +26,8 @@ export default function TasksPage() {
   const [selectedSortCategory, setSelectedSortCategory] = useState("Date")
   const [isViewTasksSheetVisible, setIsViewTasksSheetVisible] = useState(false)
   const [currentViewMode, setCurrentViewMode] = useState<"list" | "calendar">("list")
+  const [isDateSortSheetVisible, setIsDateSortSheetVisible] = useState(false)
+  const [selectedDateSortOption, setSelectedDateSortOption] = useState("due-earliest")
 
   const [tasks, setTasks] = useState([
     {
@@ -161,6 +164,30 @@ export default function TasksPage() {
       return "Today"
     }
     return formatDate(currentDate)
+  }
+
+  // Handler to open Date Sort sheet from View Tasks sheet
+  const handleOpenDateSort = () => {
+    setIsViewTasksSheetVisible(false)
+    setIsDateSortSheetVisible(true)
+  }
+
+  // Handler to go back from Date Sort sheet to View Tasks sheet
+  const handleBackToViewTasks = () => {
+    setIsDateSortSheetVisible(false)
+    setIsViewTasksSheetVisible(true)
+  }
+
+  // Handler to close all sheets
+  const handleCloseAllSheets = () => {
+    setIsViewTasksSheetVisible(false)
+    setIsDateSortSheetVisible(false)
+  }
+
+  // Placeholder for future Date Range filter
+  const handleOpenRangeFilter = () => {
+    console.log("Open Date Range Filter - To be implemented")
+    // Future: Open date range picker sheet
   }
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
@@ -426,6 +453,17 @@ export default function TasksPage() {
         onChangeViewMode={setCurrentViewMode}
         activeSortCategory={selectedSortCategory}
         onSelectSortCategory={setSelectedSortCategory}
+        onOpenDateSort={handleOpenDateSort}
+      />
+
+      {/* Sort by Date Bottom Sheet */}
+      <SortDateSheet
+        isVisible={isDateSortSheetVisible}
+        onClose={handleCloseAllSheets}
+        onBack={handleBackToViewTasks}
+        activeSortOption={selectedDateSortOption}
+        onSelectSortOption={setSelectedDateSortOption}
+        onOpenRangeFilter={handleOpenRangeFilter}
       />
     </div>
   )

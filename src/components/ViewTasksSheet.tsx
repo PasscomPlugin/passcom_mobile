@@ -9,6 +9,7 @@ interface ViewTasksSheetProps {
   onChangeViewMode: (mode: "list" | "calendar") => void
   activeSortCategory: string
   onSelectSortCategory: (category: string) => void
+  onOpenDateSort: () => void
 }
 
 export default function ViewTasksSheet({
@@ -18,6 +19,7 @@ export default function ViewTasksSheet({
   onChangeViewMode,
   activeSortCategory,
   onSelectSortCategory,
+  onOpenDateSort,
 }: ViewTasksSheetProps) {
   if (!isVisible) return null
 
@@ -30,8 +32,12 @@ export default function ViewTasksSheet({
   ]
 
   const handleSortItemClick = (label: string) => {
-    onSelectSortCategory(label)
-    onClose()
+    if (label === "Date") {
+      onOpenDateSort()
+    } else {
+      onSelectSortCategory(label)
+      onClose()
+    }
   }
 
   const isSortingDisabled = currentViewMode === "calendar"
