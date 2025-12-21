@@ -52,7 +52,6 @@ export const DUMMY_TASKS = [
     labels: ["urgent", "bugs"],
     comments: 5,
     completed: false,
-    completed: false,
   },
   {
     id: "t2",
@@ -67,7 +66,6 @@ export const DUMMY_TASKS = [
     creatorId: "u1",
     labels: ["marketing", "urgent"],
     comments: 3,
-    completed: false,
     completed: false,
   },
   {
