@@ -1,10 +1,33 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { ChevronLeft, Paperclip, X } from "lucide-react"
+import { useState, useEffect, useRef } from "react"
+import { ChevronLeft, Paperclip, X, Check } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+
+// Dummy data
+const AVAILABLE_LABELS = [
+  { id: "urgent", name: "Urgent", color: "#EF4444" },
+  { id: "design", name: "Design", color: "#3B82F6" },
+  { id: "marketing", name: "Marketing", color: "#A855F7" },
+  { id: "finance", name: "Finance", color: "#10B981" },
+  { id: "bugs", name: "Bugs", color: "#F97316" },
+]
+
+const AVAILABLE_LOCATIONS = [
+  { id: "room101", name: "Room 101" },
+  { id: "room102", name: "Room 102" },
+  { id: "warehouse", name: "Warehouse" },
+  { id: "office", name: "Main Office" },
+  { id: "remote", name: "Remote" },
+]
+
+interface ChecklistItem {
+  id: string
+  text: string
+  isChecked: boolean
+}
 
 interface Task {
   id?: string
@@ -19,6 +42,9 @@ interface Task {
   creatorId?: string
   completed?: boolean
   requirePhoto?: boolean
+  attachments?: string[]
+  location?: string
+  checklist?: ChecklistItem[]
 }
 
 interface TaskEditorProps {
@@ -29,13 +55,41 @@ interface TaskEditorProps {
 }
 
 export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEditorProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  
   const [taskTitle, setTaskTitle] = useState("")
   const [description, setDescription] = useState("")
-  const [startDate, setStartDate] = useState("December 18, 2025")
-  const [startTime, setStartTime] = useState("2:00 PM")
-  const [dueDate, setDueDate] = useState("December 18, 2025")
-  const [dueTime, setDueTime] = useState("3:00 PM")
+  const [startDateTime, setStartDateTime] = useState("")
+  const [dueDateTime, setDueDateTime] = useState("")
   const [requirePhoto, setRequirePhoto] = useState(false)
+  const [attachments, setAttachments] = useState<File[]>([])
+  const [selectedLabels, setSelectedLabels] = useState<string[]>([])
+  const [selectedLocation, setSelectedLocation] = useState<string>("")
+  const [checklist, setChecklist] = useState<ChecklistItem[]>([])
+  const [isAddingChecklistItem, setIsAddingChecklistItem] = useState(false)
+  const [newChecklistItem, setNewChecklistItem] = useState("")
+  const [showLabelSelector, setShowLabelSelector] = useState(false)
+  const [showLocationSelector, setShowLocationSelector] = useState(false)
+
+  // Get current datetime for min attribute
+  const getCurrentDateTime = () => {
+    const now = new Date()
+    return now.toISOString().slice(0, 16)
+  }
+
+  // Format datetime for display
+  const formatDateTime = (isoString: string) => {
+    if (!isoString) return ""
+    const date = new Date(isoString)
+    return date.toLocaleString('en-US', { 
+      month: 'long',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    })
+  }
 
   // Initialize form from initialTask when it changes
   useEffect(() => {
@@ -43,18 +97,68 @@ export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEdit
       setTaskTitle(initialTask.title || "")
       setDescription(initialTask.description || "")
       setRequirePhoto(initialTask.requirePhoto || false)
-      // TODO: Parse and set dates from initialTask.startTime and initialTask.dueTime
+      setSelectedLabels(initialTask.tags || [])
+      setSelectedLocation(initialTask.location || "")
+      setChecklist(initialTask.checklist || [])
+      if (initialTask.startTime) {
+        setStartDateTime(new Date(initialTask.startTime).toISOString().slice(0, 16))
+      }
+      if (initialTask.dueTime) {
+        setDueDateTime(new Date(initialTask.dueTime).toISOString().slice(0, 16))
+      }
     } else {
       // Reset to defaults for create mode
       setTaskTitle("")
       setDescription("")
       setRequirePhoto(false)
-      setStartDate("December 18, 2025")
-      setStartTime("2:00 PM")
-      setDueDate("December 18, 2025")
-      setDueTime("3:00 PM")
+      setAttachments([])
+      setSelectedLabels([])
+      setSelectedLocation("")
+      setChecklist([])
+      setStartDateTime("")
+      setDueDateTime("")
     }
   }, [initialTask, isVisible])
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) {
+      setAttachments(prev => [...prev, ...Array.from(e.target.files!)])
+    }
+  }
+
+  const handleRemoveAttachment = (index: number) => {
+    setAttachments(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const handleToggleLabel = (labelId: string) => {
+    setSelectedLabels(prev => 
+      prev.includes(labelId) 
+        ? prev.filter(id => id !== labelId)
+        : [...prev, labelId]
+    )
+  }
+
+  const handleAddChecklistItem = () => {
+    if (newChecklistItem.trim()) {
+      setChecklist(prev => [...prev, {
+        id: `item-${Date.now()}`,
+        text: newChecklistItem,
+        isChecked: false
+      }])
+      setNewChecklistItem("")
+      setIsAddingChecklistItem(false)
+    }
+  }
+
+  const handleToggleChecklistItem = (id: string) => {
+    setChecklist(prev => prev.map(item => 
+      item.id === id ? { ...item, isChecked: !item.isChecked } : item
+    ))
+  }
+
+  const handleRemoveChecklistItem = (id: string) => {
+    setChecklist(prev => prev.filter(item => item.id !== id))
+  }
 
   const handlePublish = () => {
     const newTask: Task = {
@@ -62,14 +166,16 @@ export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEdit
       title: taskTitle,
       description,
       requirePhoto,
-      // TODO: Convert dates to proper ISO format
-      startTime: new Date().toISOString(),
-      dueTime: new Date().toISOString(),
+      startTime: startDateTime ? new Date(startDateTime).toISOString() : undefined,
+      dueTime: dueDateTime ? new Date(dueDateTime).toISOString() : undefined,
       status: initialTask?.status || "new",
       priority: initialTask?.priority || "medium",
       assigneeId: initialTask?.assigneeId || "u1",
       creatorId: initialTask?.creatorId || "u1",
-      tags: initialTask?.tags || [],
+      tags: selectedLabels,
+      location: selectedLocation,
+      checklist,
+      attachments: attachments.map(f => f.name),
       completed: initialTask?.completed || false,
     }
     onSave(newTask)
@@ -110,6 +216,21 @@ export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEdit
             placeholder="Task description"
             className="min-h-[120px] resize-none border border-gray-200 rounded-lg px-3 py-2 text-lg placeholder:text-gray-400 focus-visible:ring-1 focus-visible:ring-blue-500"
           />
+          
+          {/* Attachments Display */}
+          {attachments.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-2">
+              {attachments.map((file, index) => (
+                <div key={index} className="flex items-center gap-2 bg-blue-50 text-blue-700 px-3 py-1 rounded-full text-sm">
+                  <span className="truncate max-w-[150px]">{file.name}</span>
+                  <button onClick={() => handleRemoveAttachment(index)}>
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="flex items-center justify-between mt-2">
             <label className="flex items-center gap-2 text-base text-gray-700 cursor-pointer">
               <input
@@ -120,33 +241,90 @@ export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEdit
               />
               <span>Require photo for completion</span>
             </label>
-            <button className="hover:opacity-80">
+            <button 
+              className="hover:opacity-80"
+              onClick={() => fileInputRef.current?.click()}
+            >
               <Paperclip className="h-6 w-6 text-blue-500" />
             </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*,video/*"
+              multiple
+              onChange={handleFileSelect}
+              className="hidden"
+            />
           </div>
         </div>
 
         {/* Start Time */}
         <div className="flex items-center justify-between h-[50px] border-b">
           <span className="text-lg font-normal">Start time</span>
-          <div className="flex items-center gap-2">
-            <span className="text-blue-500 text-base">{startDate}</span>
-            <span className="text-blue-500 text-base">{startTime}</span>
-            <button className="text-gray-400 hover:text-gray-600">
-              <X className="h-5 w-5" />
-            </button>
+          <div className="flex items-center gap-2 relative">
+            {startDateTime ? (
+              <>
+                <span className="text-blue-500 text-base cursor-pointer" onClick={() => document.getElementById('start-time-input')?.click()}>
+                  {formatDateTime(startDateTime)}
+                </span>
+                <button 
+                  className="text-gray-400 hover:text-gray-600"
+                  onClick={() => setStartDateTime("")}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </>
+            ) : (
+              <span 
+                className="text-blue-500 text-base cursor-pointer"
+                onClick={() => document.getElementById('start-time-input')?.click()}
+              >
+                Select
+              </span>
+            )}
+            <input
+              id="start-time-input"
+              type="datetime-local"
+              value={startDateTime}
+              min={getCurrentDateTime()}
+              onChange={(e) => setStartDateTime(e.target.value)}
+              className="absolute opacity-0 pointer-events-none"
+            />
           </div>
         </div>
 
         {/* Due Time */}
         <div className="flex items-center justify-between h-[50px] border-b">
           <span className="text-lg font-normal">Due time</span>
-          <div className="flex items-center gap-2">
-            <span className="text-blue-500 text-base">{dueDate}</span>
-            <span className="text-blue-500 text-base">{dueTime}</span>
-            <button className="text-gray-400 hover:text-gray-600">
-              <X className="h-5 w-5" />
-            </button>
+          <div className="flex items-center gap-2 relative">
+            {dueDateTime ? (
+              <>
+                <span className="text-blue-500 text-base cursor-pointer" onClick={() => document.getElementById('due-time-input')?.click()}>
+                  {formatDateTime(dueDateTime)}
+                </span>
+                <button 
+                  className="text-gray-400 hover:text-gray-600"
+                  onClick={() => setDueDateTime("")}
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </>
+            ) : (
+              <span 
+                className="text-blue-500 text-base cursor-pointer"
+                onClick={() => document.getElementById('due-time-input')?.click()}
+              >
+                Select
+              </span>
+            )}
+            <input
+              id="due-time-input"
+              type="datetime-local"
+              value={dueDateTime}
+              min={startDateTime || getCurrentDateTime()}
+              onChange={(e) => setDueDateTime(e.target.value)}
+              className="absolute opacity-0 pointer-events-none"
+            />
           </div>
         </div>
 
@@ -164,25 +342,120 @@ export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEdit
         {/* Labels */}
         <div className="flex items-center justify-between h-[50px] border-b">
           <span className="text-lg font-normal">Labels</span>
-          <Button variant="ghost" className="text-blue-500 hover:text-blue-600 hover:bg-blue-50 h-auto py-1 text-base">
-            Select
-          </Button>
+          {selectedLabels.length > 0 ? (
+            <button 
+              onClick={() => setShowLabelSelector(true)}
+              className="flex items-center gap-1 flex-wrap max-w-[200px]"
+            >
+              {selectedLabels.map(labelId => {
+                const label = AVAILABLE_LABELS.find(l => l.id === labelId)
+                return label ? (
+                  <span key={labelId} className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                    {label.name}
+                  </span>
+                ) : null
+              })}
+            </button>
+          ) : (
+            <Button 
+              variant="ghost" 
+              className="text-blue-500 hover:text-blue-600 hover:bg-blue-50 h-auto py-1 text-base"
+              onClick={() => setShowLabelSelector(true)}
+            >
+              Select
+            </Button>
+          )}
         </div>
 
         {/* Location */}
         <div className="flex items-center justify-between h-[50px] border-b">
           <span className="text-lg font-normal">Location</span>
-          <Button variant="ghost" className="text-blue-500 hover:text-blue-600 hover:bg-blue-50 h-auto py-1 text-base">
-            Select
-          </Button>
+          {selectedLocation ? (
+            <button 
+              onClick={() => setShowLocationSelector(true)}
+              className="text-base text-gray-900 hover:text-blue-500"
+            >
+              {AVAILABLE_LOCATIONS.find(l => l.id === selectedLocation)?.name}
+            </button>
+          ) : (
+            <Button 
+              variant="ghost" 
+              className="text-blue-500 hover:text-blue-600 hover:bg-blue-50 h-auto py-1 text-base"
+              onClick={() => setShowLocationSelector(true)}
+            >
+              Select
+            </Button>
+          )}
         </div>
 
-        {/* Sub-tasks */}
-        <div className="flex items-center justify-between h-[50px] border-b">
-          <span className="text-lg font-normal">Sub-tasks</span>
-          <Button variant="ghost" className="text-blue-500 hover:text-blue-600 hover:bg-blue-50 h-auto py-1 text-base">
-            Add
-          </Button>
+        {/* Checklist */}
+        <div className="border-b py-3">
+          <div className="flex items-center justify-between h-[50px]">
+            <span className="text-lg font-normal">Checklist</span>
+            <Button 
+              variant="ghost" 
+              className="text-blue-500 hover:text-blue-600 hover:bg-blue-50 h-auto py-1 text-base"
+              onClick={() => setIsAddingChecklistItem(true)}
+            >
+              Add
+            </Button>
+          </div>
+
+          {/* Checklist Items */}
+          {checklist.length > 0 && (
+            <div className="space-y-2 mt-2">
+              {checklist.map(item => (
+                <div key={item.id} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={item.isChecked}
+                    onChange={() => handleToggleChecklistItem(item.id)}
+                    className="h-4 w-4 rounded border-gray-300 text-blue-500"
+                  />
+                  <span className={`flex-1 text-base ${item.isChecked ? 'line-through text-gray-400' : ''}`}>
+                    {item.text}
+                  </span>
+                  <button onClick={() => handleRemoveChecklistItem(item.id)}>
+                    <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Add Checklist Item Input */}
+          {isAddingChecklistItem && (
+            <div className="flex items-center gap-2 mt-2">
+              <Input
+                value={newChecklistItem}
+                onChange={(e) => setNewChecklistItem(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleAddChecklistItem()
+                  } else if (e.key === 'Escape') {
+                    setIsAddingChecklistItem(false)
+                    setNewChecklistItem("")
+                  }
+                }}
+                placeholder="Add checklist item"
+                className="flex-1"
+                autoFocus
+              />
+              <Button size="sm" onClick={handleAddChecklistItem}>
+                <Check className="h-4 w-4" />
+              </Button>
+              <Button 
+                size="sm" 
+                variant="ghost"
+                onClick={() => {
+                  setIsAddingChecklistItem(false)
+                  setNewChecklistItem("")
+                }}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
         </div>
       </div>
 
@@ -208,6 +481,69 @@ export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEdit
           Publish task
         </Button>
       </div>
+
+      {/* Label Selector Modal */}
+      {showLabelSelector && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowLabelSelector(false)} />
+          <div className="fixed inset-x-0 bottom-0 bg-white rounded-t-3xl p-6 z-50 max-h-[70vh] overflow-auto">
+            <h2 className="text-xl font-bold mb-4">Select Labels</h2>
+            <div className="space-y-3">
+              {AVAILABLE_LABELS.map(label => (
+                <button
+                  key={label.id}
+                  onClick={() => handleToggleLabel(label.id)}
+                  className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50"
+                >
+                  <span className="text-base">{label.name}</span>
+                  {selectedLabels.includes(label.id) && (
+                    <Check className="h-5 w-5 text-blue-500" />
+                  )}
+                </button>
+              ))}
+            </div>
+            <Button 
+              className="w-full mt-4"
+              onClick={() => setShowLabelSelector(false)}
+            >
+              Done
+            </Button>
+          </div>
+        </>
+      )}
+
+      {/* Location Selector Modal */}
+      {showLocationSelector && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowLocationSelector(false)} />
+          <div className="fixed inset-x-0 bottom-0 bg-white rounded-t-3xl p-6 z-50 max-h-[70vh] overflow-auto">
+            <h2 className="text-xl font-bold mb-4">Select Location</h2>
+            <div className="space-y-3">
+              {AVAILABLE_LOCATIONS.map(location => (
+                <button
+                  key={location.id}
+                  onClick={() => {
+                    setSelectedLocation(location.id)
+                    setShowLocationSelector(false)
+                  }}
+                  className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50"
+                >
+                  <span className="text-base">{location.name}</span>
+                  {selectedLocation === location.id && (
+                    <Check className="h-5 w-5 text-blue-500" />
+                  )}
+                </button>
+              ))}
+            </div>
+            <Button 
+              className="w-full mt-4"
+              onClick={() => setShowLocationSelector(false)}
+            >
+              Done
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   )
 }
