@@ -4,52 +4,52 @@ import { useState, useEffect } from "react"
 import { X, ChevronLeft, Search as SearchIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-interface Label {
+interface Tag {
   id: string
   name: string
   color: string
 }
 
-interface SortLabelSheetProps {
+interface SortTagSheetProps {
   isVisible: boolean
   onClose: () => void
   onBack: () => void
-  availableLabels: Label[]
-  activeLabelIds: string[]
-  onApplyFilters: (selectedLabelIds: string[]) => void
+  availableTags: Tag[]
+  activeTagIds: string[]
+  onApplyFilters: (selectedTagIds: string[]) => void
   counts?: Record<string, number>
 }
 
-export default function SortLabelSheet({
+export default function SortTagSheet({
   isVisible,
   onClose,
   onBack,
-  availableLabels,
-  activeLabelIds,
+  availableTags,
+  activeTagIds,
   onApplyFilters,
   counts = {},
-}: SortLabelSheetProps) {
+}: SortTagSheetProps) {
   const [searchQuery, setSearchQuery] = useState("")
-  const [tempSelected, setTempSelected] = useState<string[]>(activeLabelIds)
+  const [tempSelected, setTempSelected] = useState<string[]>(activeTagIds)
 
-  // Sync tempSelected with activeLabelIds when modal opens
+  // Sync tempSelected with activeTagIds when modal opens
   useEffect(() => {
     if (isVisible) {
-      setTempSelected(activeLabelIds)
+      setTempSelected(activeTagIds)
       setSearchQuery("") // Reset search when opening
     }
-  }, [isVisible, activeLabelIds])
+  }, [isVisible, activeTagIds])
 
   if (!isVisible) return null
 
-  // Filter labels based on search query
-  const filteredLabels = availableLabels.filter((label) =>
-    label.name.toLowerCase().includes(searchQuery.toLowerCase())
+  // Filter tags based on search query
+  const filteredTags = availableTags.filter((tag) =>
+    tag.name.toLowerCase().includes(searchQuery.toLowerCase())
   )
 
-  const handleLabelToggle = (labelId: string) => {
+  const handleTagToggle = (tagId: string) => {
     setTempSelected((prev) =>
-      prev.includes(labelId) ? prev.filter((id) => id !== labelId) : [...prev, labelId]
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
     )
   }
 
@@ -80,7 +80,7 @@ export default function SortLabelSheet({
           >
             <ChevronLeft className="h-5 w-5 text-gray-600" />
           </button>
-          <h2 className="text-lg font-bold text-gray-900 flex-1 text-center">Filter by Label</h2>
+          <h2 className="text-lg font-bold text-gray-900 flex-1 text-center">Filter by Tag</h2>
           <button
             onClick={handleClear}
             className="text-blue-500 font-medium text-sm px-2 py-1 hover:bg-blue-50 rounded transition-colors"
@@ -95,7 +95,7 @@ export default function SortLabelSheet({
             <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search labels..."
+              placeholder="Search tags..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-3 bg-gray-100 rounded-lg text-base focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -103,33 +103,33 @@ export default function SortLabelSheet({
           </div>
         </div>
 
-        {/* Label List */}
+        {/* Tag List */}
         <div className="flex-1 overflow-y-auto py-2">
-          {filteredLabels.length > 0 ? (
-            filteredLabels.map((label, index) => (
-              <div key={label.id}>
+          {filteredTags.length > 0 ? (
+            filteredTags.map((tag, index) => (
+              <div key={tag.id}>
                 <button
-                  onClick={() => handleLabelToggle(label.id)}
+                  onClick={() => handleTagToggle(tag.id)}
                   className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-50 transition-colors min-h-[60px]"
                 >
                   <div className="flex items-center gap-3">
                     <div 
                       className="h-5 w-5 rounded-full shrink-0" 
-                      style={{ backgroundColor: label.color }}
+                      style={{ backgroundColor: tag.color }}
                     />
                     <span
-                      className={`text-base text-gray-900 ${tempSelected.includes(label.id) ? "font-bold" : "font-normal"}`}
+                      className={`text-base text-gray-900 ${tempSelected.includes(tag.id) ? "font-bold" : "font-normal"}`}
                     >
-                      {label.name} {counts[label.id] !== undefined && `(${counts[label.id]})`}
+                      {tag.name} {counts[tag.id] !== undefined && `(${counts[tag.id]})`}
                     </span>
                   </div>
                   <div className="flex items-center">
                     <div
                       className={`h-6 w-6 rounded border-2 flex items-center justify-center transition-colors ${
-                        tempSelected.includes(label.id) ? "bg-blue-500 border-blue-500" : "border-gray-300"
+                        tempSelected.includes(tag.id) ? "bg-blue-500 border-blue-500" : "border-gray-300"
                       }`}
                     >
-                      {tempSelected.includes(label.id) && (
+                      {tempSelected.includes(tag.id) && (
                         <svg className="h-4 w-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <polyline
                             points="20 6 9 17 4 12"
@@ -142,12 +142,12 @@ export default function SortLabelSheet({
                     </div>
                   </div>
                 </button>
-                {index < filteredLabels.length - 1 && <div className="h-px bg-gray-100 mx-6" />}
+                {index < filteredTags.length - 1 && <div className="h-px bg-gray-100 mx-6" />}
               </div>
             ))
           ) : (
             <div className="flex flex-col items-center justify-center py-12 px-6">
-              <p className="text-gray-400 text-base">No labels found</p>
+              <p className="text-gray-400 text-base">No tags found</p>
             </div>
           )}
         </div>

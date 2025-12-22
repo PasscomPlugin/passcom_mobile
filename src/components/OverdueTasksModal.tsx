@@ -12,7 +12,7 @@ interface Task {
   status?: string
   assigneeId?: string
   creatorId?: string
-  labels?: string[]
+  tags?: string[]
   comments?: number
   completed?: boolean
 }
@@ -210,11 +210,11 @@ export default function OverdueTasksModal({
                       </p>
                       {/* Row 3: Meta Information */}
                       <div className="flex items-center justify-between mb-3">
-                        {/* Left: Label (if exists) + Avatar + Name */}
+                        {/* Left: Tag (if exists) + Avatar + Name */}
                         <div className="flex items-center gap-2">
-                          {task.labels && task.labels.length > 0 && (
+                          {task.tags && task.tags.length > 0 && (
                             <span className="text-xs px-2 py-1 rounded-full bg-orange-100 text-orange-700">
-                              {task.labels[0]}
+                              {task.tags[0]}
                             </span>
                           )}
                           <div

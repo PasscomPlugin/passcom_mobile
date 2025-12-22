@@ -10,17 +10,17 @@ import { Calendar } from "@/components/ui/calendar"
 import ViewTasksSheet from "@/components/ViewTasksSheet"
 import SortDateSheet from "@/components/SortDateSheet"
 import SortStatusSheet from "@/components/SortStatusSheet"
-import SortLabelSheet from "@/components/SortLabelSheet"
+import SortTagSheet from "@/components/SortTagSheet"
 import SortUserSheet from "@/components/SortUserSheet"
 import CalendarAgendaView from "@/components/CalendarAgendaView"
 import OverdueTasksModal from "@/components/OverdueTasksModal"
-import { DUMMY_TASKS, DUMMY_USERS, DUMMY_LABELS, CURRENT_USER_ID } from "@/data/dummyTasks"
+import { DUMMY_TASKS, DUMMY_USERS, DUMMY_TAGS, CURRENT_USER_ID } from "@/data/dummyTasks"
 
 export default function TasksPage() {
   const router = useRouter()
 
   // Use imported dummy data
-  const availableLabels = DUMMY_LABELS
+  const availableTags = DUMMY_TAGS
   const currentUserId = CURRENT_USER_ID
   const allUsers = DUMMY_USERS
 
@@ -43,8 +43,8 @@ export default function TasksPage() {
   const [selectedDateRange, setSelectedDateRange] = useState<{ start: Date; end: Date } | null>(null)
   const [isStatusSheetVisible, setIsStatusSheetVisible] = useState(false)
   const [statusFilters, setStatusFilters] = useState<string[]>([])
-  const [isLabelSheetVisible, setIsLabelSheetVisible] = useState(false)
-  const [labelFilters, setLabelFilters] = useState<string[]>([])
+  const [isTagSheetVisible, setIsTagSheetVisible] = useState(false)
+  const [tagFilters, setTagFilters] = useState<string[]>([])
   const [isCreatorSheetVisible, setIsCreatorSheetVisible] = useState(false)
   const [creatorFilters, setCreatorFilters] = useState<string[]>([])
   const [isAssigneeSheetVisible, setIsAssigneeSheetVisible] = useState(false)
@@ -81,10 +81,10 @@ export default function TasksPage() {
       )
     }
 
-    // 3. Filter by Label (at least one matching label)
-    if (labelFilters.length > 0) {
+    // 3. Filter by Tag (at least one matching tag)
+    if (tagFilters.length > 0) {
       result = result.filter(task => 
-        task.labels && task.labels.some(label => labelFilters.includes(label))
+        task.tags && task.tags.some(tag => tagFilters.includes(tag))
       )
     }
 
@@ -148,7 +148,7 @@ export default function TasksPage() {
     })
 
     return result
-  }, [tasks, searchQuery, statusFilters, labelFilters, assigneeFilters, creatorFilters, selectedDateRange, selectedDateSortOption])
+  }, [tasks, searchQuery, statusFilters, tagFilters, assigneeFilters, creatorFilters, selectedDateRange, selectedDateSortOption])
 
   const openTasks = filteredTasks.filter((task) => !task.completed)
   const completedTasks = filteredTasks.filter((task) => task.completed)
@@ -207,7 +207,7 @@ export default function TasksPage() {
   // Calculate filter counts for sub-menus
   const filterCounts = useMemo(() => {
     const statusCounts: Record<string, number> = {}
-    const labelCounts: Record<string, number> = {}
+    const tagCounts: Record<string, number> = {}
     const assigneeCounts: Record<string, number> = {}
     const creatorCounts: Record<string, number> = {}
 
@@ -217,10 +217,10 @@ export default function TasksPage() {
         statusCounts[task.status] = (statusCounts[task.status] || 0) + 1
       }
 
-      // Count by labels
-      if (task.labels && Array.isArray(task.labels)) {
-        task.labels.forEach(label => {
-          labelCounts[label] = (labelCounts[label] || 0) + 1
+      // Count by tags
+      if (task.tags && Array.isArray(task.tags)) {
+        task.tags.forEach(tag => {
+          tagCounts[tag] = (tagCounts[tag] || 0) + 1
         })
       }
 
@@ -237,7 +237,7 @@ export default function TasksPage() {
 
     return {
       status: statusCounts,
-      labels: labelCounts,
+      tags: tagCounts,
       assignees: assigneeCounts,
       creators: creatorCounts
     }
@@ -342,10 +342,10 @@ export default function TasksPage() {
     setIsStatusSheetVisible(true)
   }
 
-  // Handler to open Label Filter sheet from View Tasks sheet
-  const handleOpenLabelFilter = () => {
+  // Handler to open Tag Filter sheet from View Tasks sheet
+  const handleOpenTagFilter = () => {
     setIsViewTasksSheetVisible(false)
-    setIsLabelSheetVisible(true)
+    setIsTagSheetVisible(true)
   }
 
   // Handler to open Creator Filter sheet from View Tasks sheet
@@ -364,7 +364,7 @@ export default function TasksPage() {
   const handleBackToViewTasks = () => {
     setIsDateSortSheetVisible(false)
     setIsStatusSheetVisible(false)
-    setIsLabelSheetVisible(false)
+    setIsTagSheetVisible(false)
     setIsCreatorSheetVisible(false)
     setIsAssigneeSheetVisible(false)
     setIsViewTasksSheetVisible(true)
@@ -375,7 +375,7 @@ export default function TasksPage() {
     setIsViewTasksSheetVisible(false)
     setIsDateSortSheetVisible(false)
     setIsStatusSheetVisible(false)
-    setIsLabelSheetVisible(false)
+    setIsTagSheetVisible(false)
     setIsCreatorSheetVisible(false)
     setIsAssigneeSheetVisible(false)
   }
@@ -650,7 +650,7 @@ export default function TasksPage() {
         onSelectSortCategory={setSelectedSortCategory}
         onOpenDateSort={handleOpenDateSort}
         onOpenStatusFilter={handleOpenStatusFilter}
-        onOpenLabelFilter={handleOpenLabelFilter}
+        onOpenTagFilter={handleOpenTagFilter}
         onOpenCreatorFilter={handleOpenCreatorFilter}
         onOpenAssigneeFilter={handleOpenAssigneeFilter}
       />
@@ -676,15 +676,15 @@ export default function TasksPage() {
         counts={filterCounts.status}
       />
 
-      {/* Sort by Label Bottom Sheet */}
-      <SortLabelSheet
-        isVisible={isLabelSheetVisible}
+      {/* Sort by Tag Bottom Sheet */}
+      <SortTagSheet
+        isVisible={isTagSheetVisible}
         onClose={handleCloseAllSheets}
         onBack={handleBackToViewTasks}
-        availableLabels={availableLabels}
-        activeLabelIds={labelFilters}
-        onApplyFilters={setLabelFilters}
-        counts={filterCounts.labels}
+        availableTags={availableTags}
+        activeTagIds={tagFilters}
+        onApplyFilters={setTagFilters}
+        counts={filterCounts.tags}
       />
 
       {/* Sort by Creator Bottom Sheet */}

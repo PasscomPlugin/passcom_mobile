@@ -11,7 +11,7 @@ interface ViewTasksSheetProps {
   onSelectSortCategory: (category: string) => void
   onOpenDateSort: () => void
   onOpenStatusFilter: () => void
-  onOpenLabelFilter: () => void
+  onOpenTagFilter: () => void
   onOpenCreatorFilter: () => void
   onOpenAssigneeFilter: () => void
 }
@@ -25,7 +25,7 @@ export default function ViewTasksSheet({
   onSelectSortCategory,
   onOpenDateSort,
   onOpenStatusFilter,
-  onOpenLabelFilter,
+  onOpenTagFilter,
   onOpenCreatorFilter,
   onOpenAssigneeFilter,
 }: ViewTasksSheetProps) {
@@ -34,7 +34,7 @@ export default function ViewTasksSheet({
   const sortMenuItems = [
     { id: 1, label: "Date" },
     { id: 2, label: "Status" },
-    { id: 3, label: "Label" },
+    { id: 3, label: "Tag" },
     { id: 4, label: "Created by" },
     { id: 5, label: "Assigned to" },
   ]
@@ -44,8 +44,8 @@ export default function ViewTasksSheet({
       onOpenDateSort()
     } else if (label === "Status") {
       onOpenStatusFilter()
-    } else if (label === "Label") {
-      onOpenLabelFilter()
+    } else if (label === "Tag") {
+      onOpenTagFilter()
     } else if (label === "Created by") {
       onOpenCreatorFilter()
     } else if (label === "Assigned to") {
