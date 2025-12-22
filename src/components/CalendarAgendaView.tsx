@@ -5,6 +5,15 @@ import { Button } from "@/components/ui/button"
 import { ChevronRight, ChevronDown } from "lucide-react"
 import TaskCard from "@/components/TaskCard"
 
+// Helper function to format date
+function formatTaskDate(dateString: string | Date): string {
+  const date = new Date(dateString)
+  const month = date.toLocaleString('en-US', { month: 'short' })
+  const day = date.getDate()
+  const time = date.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+  return `${month} ${day} ${time}`
+}
+
 interface Task {
   id: number
   title: string
@@ -215,9 +224,11 @@ export default function CalendarAgendaView({
                     dayTasks.map((task) => (
                       <TaskCard
                         key={task.id}
-                        task={task}
-                        onPress={() => alert(`Open task details for: ${task.title}`)}
-                        onToggleStatus={() => alert("Toggle not available in calendar view")}
+                        title={task.title}
+                        startDate={formatTaskDate(task.startTime)}
+                        dueDate={formatTaskDate(task.dueTime)}
+                        status={task.status}
+                        onClick={() => alert(`Open task details for: ${task.title}`)}
                       />
                     ))
                   )}

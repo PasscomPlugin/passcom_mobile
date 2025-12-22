@@ -17,6 +17,15 @@ import OverdueTasksModal from "@/components/OverdueTasksModal"
 import TaskCard from "@/components/TaskCard"
 import { DUMMY_TASKS, DUMMY_USERS, DUMMY_TAGS, CURRENT_USER_ID } from "@/data/dummyTasks"
 
+// Helper function to format date
+function formatTaskDate(dateString: string | Date): string {
+  const date = new Date(dateString)
+  const month = date.toLocaleString('en-US', { month: 'short' })
+  const day = date.getDate()
+  const time = date.toLocaleString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+  return `${month} ${day} ${time}`
+}
+
 export default function TasksPage() {
   const router = useRouter()
 
@@ -566,9 +575,11 @@ export default function TasksPage() {
           {isOpenTasksExpanded && openTasks.map((task) => (
             <TaskCard
               key={task.id}
-              task={task}
-              onPress={() => alert(`Open task details for: ${task.title}`)}
-              onToggleStatus={toggleTask}
+              title={task.title}
+              startDate={formatTaskDate(task.startTime)}
+              dueDate={formatTaskDate(task.dueTime)}
+              status={task.status}
+              onClick={() => alert(`Open task details for: ${task.title}`)}
             />
           ))}
         </div>
@@ -590,9 +601,11 @@ export default function TasksPage() {
           {isDoneTasksExpanded && completedTasks.map((task) => (
             <TaskCard
               key={task.id}
-              task={task}
-              onPress={() => alert(`Open task details for: ${task.title}`)}
-              onToggleStatus={toggleTask}
+              title={task.title}
+              startDate={formatTaskDate(task.startTime)}
+              dueDate={formatTaskDate(task.dueTime)}
+              status={task.status}
+              onClick={() => alert(`Open task details for: ${task.title}`)}
             />
           ))}
         </div>
