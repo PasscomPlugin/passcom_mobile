@@ -596,7 +596,7 @@ export default function TasksPage() {
       ) : (
         <>
           {/* Tasks Content */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 space-y-6">
+          <div className="flex-1 overflow-y-auto px-4 py-4 pb-24 space-y-6">
         {/* Open Tasks Section */}
         <div className="space-y-3">
           <div className="flex items-center justify-between w-full">
@@ -685,19 +685,6 @@ export default function TasksPage() {
           ))}
         </div>
       </div>
-
-          {/* Create Task Button */}
-          <div className="p-4 bg-white border-t">
-            <Button
-              onClick={() => {
-                setEditingTask(null)
-                setIsEditorOpen(true)
-              }}
-              className="w-full h-14 rounded-full bg-cyan-400 hover:bg-cyan-500 text-white text-base font-medium"
-            >
-              Create task
-            </Button>
-          </div>
         </>
       )}
 
@@ -790,6 +777,19 @@ export default function TasksPage() {
         onSave={handleSaveTask}
         initialTask={editingTask}
       />
+
+      {/* Fixed Create Task Button */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t z-40">
+        <Button
+          onClick={() => {
+            setEditingTask(null)
+            setIsEditorOpen(true)
+          }}
+          className="w-full h-14 rounded-full bg-cyan-400 hover:bg-cyan-500 text-white text-base font-medium"
+        >
+          Create task
+        </Button>
+      </div>
     </div>
   )
 }
