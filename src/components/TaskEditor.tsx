@@ -91,6 +91,7 @@ export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEdit
 
   // Get the effective due time to display (computed or explicit)
   const getEffectiveDueTime = () => {
+    if (!isClient) return "" // Wait for client-side hydration
     if (isDueTimeExplicitlySet && dueDateTime) {
       return dueDateTime
     }
