@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronLeft, ChevronRight, ChevronDown, AlertTriangle, Search, SlidersHorizontal, Bell } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -39,8 +39,13 @@ export default function TasksPage() {
   // For "Created By" filter, exclude "Unassigned" since tasks always have a creator
   const creatorUsers = allUsers.filter((user) => user.id !== "unassigned")
 
-  const [currentDate, setCurrentDate] = useState(new Date())
+  const [currentDate, setCurrentDate] = useState<Date | null>(null)
   const [isOpenTasksExpanded, setIsOpenTasksExpanded] = useState(true)
+  
+  // Initialize currentDate on client side only
+  useEffect(() => {
+    setCurrentDate(new Date())
+  }, [])
   const [isDoneTasksExpanded, setIsDoneTasksExpanded] = useState(true)
   const [isDateOpen, setIsDateOpen] = useState(false)
   const [viewMode, setViewMode] = useState<"Day" | "Week" | "Month">("Week")
@@ -278,6 +283,7 @@ export default function TasksPage() {
 
   // Date navigation functions
   const goToPreviousDay = () => {
+    if (!currentDate) return
     const newDate = new Date(currentDate)
     if (viewMode === "Week") {
       newDate.setDate(newDate.getDate() - 7)
@@ -291,6 +297,7 @@ export default function TasksPage() {
   }
 
   const goToNextDay = () => {
+    if (!currentDate) return
     const newDate = new Date(currentDate)
     if (viewMode === "Week") {
       newDate.setDate(newDate.getDate() + 7)
@@ -350,6 +357,7 @@ export default function TasksPage() {
   }
 
   const getDateDisplayText = () => {
+    if (!currentDate) return "Loading..."
     if (viewMode === "Week") {
       return getWeekRange(currentDate)
     }
