@@ -68,6 +68,12 @@ export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEdit
   const [isTagSheetOpen, setIsTagSheetOpen] = useState(false)
   const [showLocationSelector, setShowLocationSelector] = useState(false)
   const [isAttachMenuOpen, setIsAttachMenuOpen] = useState(false)
+  const [isClient, setIsClient] = useState(false)
+
+  // Ensure we're on the client before using Date functions
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   // Helper: Get default start time (now)
   const getDefaultStartTime = () => {
@@ -82,8 +88,9 @@ export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEdit
     return due.toISOString().slice(0, 16)
   }
 
-  // Get current datetime for min attribute
+  // Get current datetime for min attribute (client-side only)
   const getCurrentDateTime = () => {
+    if (typeof window === 'undefined') return "" // Server-side guard
     const now = new Date()
     return now.toISOString().slice(0, 16)
   }
@@ -104,6 +111,8 @@ export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEdit
 
   // Initialize form from initialTask when it changes
   useEffect(() => {
+    if (!isClient) return // Only run on client
+
     if (initialTask) {
       setTaskTitle(initialTask.title || "")
       setDescription(initialTask.description || "")
@@ -130,7 +139,7 @@ export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEdit
       setStartDateTime(defaultStart)
       setDueDateTime(getDefaultDueTime(defaultStart))
     }
-  }, [initialTask, isVisible])
+  }, [initialTask, isVisible, isClient])
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
