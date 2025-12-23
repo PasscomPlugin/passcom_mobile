@@ -1,13 +1,13 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { ChevronLeft, Paperclip, X, Check } from "lucide-react"
+import { ChevronLeft, Paperclip, X, Check, Camera, FileText, Image } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 
 // Dummy data
-const AVAILABLE_LABELS = [
+const AVAILABLE_TAGS = [
   { id: "urgent", name: "Urgent", color: "#EF4444" },
   { id: "design", name: "Design", color: "#3B82F6" },
   { id: "marketing", name: "Marketing", color: "#A855F7" },
@@ -55,7 +55,11 @@ interface TaskEditorProps {
 }
 
 export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEditorProps) {
-  const fileInputRef = useRef<HTMLInputElement>(null)
+  const cameraInputRef = useRef<HTMLInputElement>(null)
+  const filesInputRef = useRef<HTMLInputElement>(null)
+  const imagesInputRef = useRef<HTMLInputElement>(null)
+  const startTimeInputRef = useRef<HTMLInputElement>(null)
+  const dueTimeInputRef = useRef<HTMLInputElement>(null)
   
   const [taskTitle, setTaskTitle] = useState("")
   const [description, setDescription] = useState("")
@@ -63,13 +67,14 @@ export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEdit
   const [dueDateTime, setDueDateTime] = useState("")
   const [requirePhoto, setRequirePhoto] = useState(false)
   const [attachments, setAttachments] = useState<File[]>([])
-  const [selectedLabels, setSelectedLabels] = useState<string[]>([])
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [selectedLocation, setSelectedLocation] = useState<string>("")
   const [checklist, setChecklist] = useState<ChecklistItem[]>([])
   const [isAddingChecklistItem, setIsAddingChecklistItem] = useState(false)
   const [newChecklistItem, setNewChecklistItem] = useState("")
-  const [showLabelSelector, setShowLabelSelector] = useState(false)
+  const [showTagSelector, setShowTagSelector] = useState(false)
   const [showLocationSelector, setShowLocationSelector] = useState(false)
+  const [isAttachMenuOpen, setIsAttachMenuOpen] = useState(false)
 
   // Get current datetime for min attribute
   const getCurrentDateTime = () => {
@@ -97,7 +102,7 @@ export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEdit
       setTaskTitle(initialTask.title || "")
       setDescription(initialTask.description || "")
       setRequirePhoto(initialTask.requirePhoto || false)
-      setSelectedLabels(initialTask.tags || [])
+      setSelectedTags(initialTask.tags || [])
       setSelectedLocation(initialTask.location || "")
       setChecklist(initialTask.checklist || [])
       if (initialTask.startTime) {
@@ -112,7 +117,7 @@ export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEdit
       setDescription("")
       setRequirePhoto(false)
       setAttachments([])
-      setSelectedLabels([])
+      setSelectedTags([])
       setSelectedLocation("")
       setChecklist([])
       setStartDateTime("")
@@ -124,17 +129,18 @@ export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEdit
     if (e.target.files && e.target.files.length > 0) {
       setAttachments(prev => [...prev, ...Array.from(e.target.files!)])
     }
+    setIsAttachMenuOpen(false)
   }
 
   const handleRemoveAttachment = (index: number) => {
     setAttachments(prev => prev.filter((_, i) => i !== index))
   }
 
-  const handleToggleLabel = (labelId: string) => {
-    setSelectedLabels(prev => 
-      prev.includes(labelId) 
-        ? prev.filter(id => id !== labelId)
-        : [...prev, labelId]
+  const handleToggleTag = (tagId: string) => {
+    setSelectedTags(prev => 
+      prev.includes(tagId) 
+        ? prev.filter(id => id !== tagId)
+        : [...prev, tagId]
     )
   }
 
@@ -172,7 +178,7 @@ export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEdit
       priority: initialTask?.priority || "medium",
       assigneeId: initialTask?.assigneeId || "u1",
       creatorId: initialTask?.creatorId || "u1",
-      tags: selectedLabels,
+      tags: selectedTags,
       location: selectedLocation,
       checklist,
       attachments: attachments.map(f => f.name),
@@ -241,16 +247,74 @@ export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEdit
               />
               <span>Require photo for completion</span>
             </label>
-            <button 
-              className="hover:opacity-80"
-              onClick={() => fileInputRef.current?.click()}
-            >
-              <Paperclip className="h-6 w-6 text-blue-500" />
-            </button>
+            <div className="relative">
+              <button 
+                className="hover:opacity-80"
+                onClick={() => setIsAttachMenuOpen(!isAttachMenuOpen)}
+              >
+                <Paperclip className="h-6 w-6 text-blue-500" />
+              </button>
+              
+              {/* Attachment Menu */}
+              {isAttachMenuOpen && (
+                <>
+                  <div 
+                    className="fixed inset-0 z-10" 
+                    onClick={() => setIsAttachMenuOpen(false)}
+                  />
+                  <div className="absolute right-0 top-full mt-2 bg-white border rounded-lg shadow-lg py-2 w-48 z-20">
+                    <button
+                      onClick={() => {
+                        cameraInputRef.current?.click()
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50"
+                    >
+                      <Camera className="h-5 w-5 text-gray-700" />
+                      <span className="text-base">Camera</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        filesInputRef.current?.click()
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50"
+                    >
+                      <FileText className="h-5 w-5 text-gray-700" />
+                      <span className="text-base">Files</span>
+                    </button>
+                    <button
+                      onClick={() => {
+                        imagesInputRef.current?.click()
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50"
+                    >
+                      <Image className="h-5 w-5 text-gray-700" />
+                      <span className="text-base">Saved Images</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+            
+            {/* Hidden File Inputs */}
             <input
-              ref={fileInputRef}
+              ref={cameraInputRef}
               type="file"
-              accept="image/*,video/*"
+              accept="image/*"
+              capture="environment"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            <input
+              ref={filesInputRef}
+              type="file"
+              multiple
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            <input
+              ref={imagesInputRef}
+              type="file"
+              accept="image/*"
               multiple
               onChange={handleFileSelect}
               className="hidden"
@@ -261,34 +325,38 @@ export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEdit
         {/* Start Time */}
         <div className="flex items-center justify-between h-[50px] border-b">
           <span className="text-lg font-normal">Start time</span>
-          <div className="flex items-center gap-2 relative">
+          <div className="flex items-center gap-2">
             {startDateTime ? (
               <>
-                <label htmlFor="start-time-input" className="text-blue-500 text-base cursor-pointer">
+                <button
+                  onClick={() => startTimeInputRef.current?.showPicker()}
+                  className="text-blue-500 text-base cursor-pointer hover:text-blue-600"
+                >
                   {formatDateTime(startDateTime)}
-                </label>
+                </button>
                 <button 
                   className="text-gray-400 hover:text-gray-600"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    setStartDateTime("")
-                  }}
+                  onClick={() => setStartDateTime("")}
                 >
                   <X className="h-5 w-5" />
                 </button>
               </>
             ) : (
-              <label htmlFor="start-time-input" className="text-blue-500 text-base cursor-pointer">
+              <button
+                onClick={() => startTimeInputRef.current?.showPicker()}
+                className="text-blue-500 text-base cursor-pointer hover:text-blue-600"
+              >
                 Select
-              </label>
+              </button>
             )}
             <input
+              ref={startTimeInputRef}
               id="start-time-input"
               type="datetime-local"
               value={startDateTime}
               min={getCurrentDateTime()}
               onChange={(e) => setStartDateTime(e.target.value)}
-              className="absolute right-0 opacity-0 w-full h-full cursor-pointer"
+              className="absolute opacity-0 pointer-events-none"
             />
           </div>
         </div>
@@ -296,34 +364,38 @@ export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEdit
         {/* Due Time */}
         <div className="flex items-center justify-between h-[50px] border-b">
           <span className="text-lg font-normal">Due time</span>
-          <div className="flex items-center gap-2 relative">
+          <div className="flex items-center gap-2">
             {dueDateTime ? (
               <>
-                <label htmlFor="due-time-input" className="text-blue-500 text-base cursor-pointer">
+                <button
+                  onClick={() => dueTimeInputRef.current?.showPicker()}
+                  className="text-blue-500 text-base cursor-pointer hover:text-blue-600"
+                >
                   {formatDateTime(dueDateTime)}
-                </label>
+                </button>
                 <button 
                   className="text-gray-400 hover:text-gray-600"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    setDueDateTime("")
-                  }}
+                  onClick={() => setDueDateTime("")}
                 >
                   <X className="h-5 w-5" />
                 </button>
               </>
             ) : (
-              <label htmlFor="due-time-input" className="text-blue-500 text-base cursor-pointer">
+              <button
+                onClick={() => dueTimeInputRef.current?.showPicker()}
+                className="text-blue-500 text-base cursor-pointer hover:text-blue-600"
+              >
                 Select
-              </label>
+              </button>
             )}
             <input
+              ref={dueTimeInputRef}
               id="due-time-input"
               type="datetime-local"
               value={dueDateTime}
               min={startDateTime || getCurrentDateTime()}
               onChange={(e) => setDueDateTime(e.target.value)}
-              className="absolute right-0 opacity-0 w-full h-full cursor-pointer"
+              className="absolute opacity-0 pointer-events-none"
             />
           </div>
         </div>
@@ -339,19 +411,19 @@ export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEdit
           </button>
         </div>
 
-        {/* Labels */}
+        {/* Tags */}
         <div className="flex items-center justify-between h-[50px] border-b">
-          <span className="text-lg font-normal">Labels</span>
-          {selectedLabels.length > 0 ? (
+          <span className="text-lg font-normal">Tags</span>
+          {selectedTags.length > 0 ? (
             <button 
-              onClick={() => setShowLabelSelector(true)}
+              onClick={() => setShowTagSelector(true)}
               className="flex items-center gap-1 flex-wrap max-w-[200px]"
             >
-              {selectedLabels.map(labelId => {
-                const label = AVAILABLE_LABELS.find(l => l.id === labelId)
-                return label ? (
-                  <span key={labelId} className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">
-                    {label.name}
+              {selectedTags.map(tagId => {
+                const tag = AVAILABLE_TAGS.find(t => t.id === tagId)
+                return tag ? (
+                  <span key={tagId} className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700">
+                    {tag.name}
                   </span>
                 ) : null
               })}
@@ -360,7 +432,7 @@ export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEdit
             <Button 
               variant="ghost" 
               className="text-blue-500 hover:text-blue-600 hover:bg-blue-50 h-auto py-1 text-base"
-              onClick={() => setShowLabelSelector(true)}
+              onClick={() => setShowTagSelector(true)}
             >
               Select
             </Button>
@@ -482,21 +554,21 @@ export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEdit
         </Button>
       </div>
 
-      {/* Label Selector Modal */}
-      {showLabelSelector && (
+      {/* Tag Selector Modal */}
+      {showTagSelector && (
         <>
-          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowLabelSelector(false)} />
+          <div className="fixed inset-0 bg-black/50 z-50" onClick={() => setShowTagSelector(false)} />
           <div className="fixed inset-x-0 bottom-0 bg-white rounded-t-3xl p-6 z-50 max-h-[70vh] overflow-auto">
-            <h2 className="text-xl font-bold mb-4">Select Labels</h2>
+            <h2 className="text-xl font-bold mb-4">Select Tags</h2>
             <div className="space-y-3">
-              {AVAILABLE_LABELS.map(label => (
+              {AVAILABLE_TAGS.map(tag => (
                 <button
-                  key={label.id}
-                  onClick={() => handleToggleLabel(label.id)}
+                  key={tag.id}
+                  onClick={() => handleToggleTag(tag.id)}
                   className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50"
                 >
-                  <span className="text-base">{label.name}</span>
-                  {selectedLabels.includes(label.id) && (
+                  <span className="text-base">{tag.name}</span>
+                  {selectedTags.includes(tag.id) && (
                     <Check className="h-5 w-5 text-blue-500" />
                   )}
                 </button>
@@ -504,7 +576,7 @@ export function TaskEditor({ isVisible, onClose, onSave, initialTask }: TaskEdit
             </div>
             <Button 
               className="w-full mt-4"
-              onClick={() => setShowLabelSelector(false)}
+              onClick={() => setShowTagSelector(false)}
             >
               Done
             </Button>
