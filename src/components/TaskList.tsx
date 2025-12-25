@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronLeft, ChevronRight, ChevronDown, AlertTriangle, Search, SlidersHorizontal, Bell } from "lucide-react"
+import { ChevronLeft, ChevronRight, ChevronDown, AlertTriangle, Search, SlidersHorizontal, Bell, Clock } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -18,6 +18,34 @@ import { TaskEditor } from "@/components/TaskEditor"
 import { TaskViewer } from "@/components/TaskViewer"
 import { DUMMY_TASKS, DUMMY_USERS, CURRENT_USER_ID } from "@/data/dummyTasks"
 import { AVAILABLE_TAGS } from "@/data/tags"
+import { Recurrence } from "@/components/RecurrenceSheet"
+
+// Helper function to calculate next due date for recurring tasks
+function getNextDueDate(currentDate: Date, recurrence: Recurrence): Date {
+  const nextDate = new Date(currentDate)
+  const interval = recurrence.interval || 1
+  
+  switch (recurrence.type) {
+    case 'daily':
+      nextDate.setDate(nextDate.getDate() + interval)
+      break
+    case 'weekly':
+      nextDate.setDate(nextDate.getDate() + (7 * interval))
+      break
+    case 'monthly':
+      nextDate.setMonth(nextDate.getMonth() + interval)
+      break
+    case 'yearly':
+      nextDate.setFullYear(nextDate.getFullYear() + interval)
+      break
+    case 'custom':
+      // For custom, default to weekly behavior
+      nextDate.setDate(nextDate.getDate() + (7 * interval))
+      break
+  }
+  
+  return nextDate
+}
 
 // Helper function to format date
 function formatTaskDate(dateString: string | Date): string {
@@ -49,6 +77,7 @@ export default function TasksPage() {
   const [isDoneTasksExpanded, setIsDoneTasksExpanded] = useState(true)
   const [isDateOpen, setIsDateOpen] = useState(false)
   const [viewMode, setViewMode] = useState<"Day" | "Week" | "Month">("Week")
+  const [isClockedIn, setIsClockedIn] = useState(false) // Mock clock status for testing billable tasks
   const [taskView, setTaskView] = useState<"my-tasks" | "tasks-i-made">("my-tasks")
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
@@ -71,15 +100,80 @@ export default function TasksPage() {
   const [editingTask, setEditingTask] = useState<any>(null)
   const [isCreatorOpen, setIsCreatorOpen] = useState(false)
 
-  // Use imported dummy tasks
+  // LocalStorage key
+  const STORAGE_KEY = 'passcom-tasks'
+
+  // Initialize with DUMMY_TASKS to avoid hydration mismatch
   const [tasks, setTasks] = useState(DUMMY_TASKS)
+  const [isTasksLoaded, setIsTasksLoaded] = useState(false)
+
+  // Load tasks from localStorage on mount (client-side only)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && !isTasksLoaded) {
+      const stored = localStorage.getItem(STORAGE_KEY)
+      if (stored) {
+        try {
+          const parsedTasks = JSON.parse(stored)
+          setTasks(parsedTasks)
+          console.log('Tasks loaded from localStorage:', parsedTasks.length, 'tasks')
+        } catch (e) {
+          console.error('Error parsing stored tasks:', e)
+          // Keep DUMMY_TASKS if parsing fails
+        }
+      }
+      setIsTasksLoaded(true)
+    }
+  }, [isTasksLoaded])
+
+  // Save tasks to localStorage whenever they change (but not on first load)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && isTasksLoaded) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks))
+      console.log('Tasks saved to localStorage:', tasks.length, 'tasks')
+    }
+  }, [tasks, isTasksLoaded])
 
   const toggleTask = (id: string | number) => {
-    setTasks((prevTasks) =>
-      prevTasks.map((task) =>
-        task.id === String(id) ? { ...task, completed: !task.completed, status: task.completed ? "open" : "done" } : task
+    setTasks((prevTasks) => {
+      const taskIndex = prevTasks.findIndex(task => task.id === String(id))
+      if (taskIndex === -1) return prevTasks
+      
+      const task = prevTasks[taskIndex]
+      const isBeingCompleted = !task.completed
+      
+      // Check if task is being marked as DONE and has recurrence
+      const taskRecurrence = (task as any).recurrence
+      if (isBeingCompleted && taskRecurrence) {
+        console.log('Creating next recurring task for:', task.title)
+        
+        // Calculate next dates
+        const currentDueDate = task.dueTime ? new Date(task.dueTime) : new Date()
+        const currentStartDate = task.startTime ? new Date(task.startTime) : new Date()
+        const nextDueDate = getNextDueDate(currentDueDate, taskRecurrence)
+        const nextStartDate = getNextDueDate(currentStartDate, taskRecurrence)
+        
+        // Create new recurring task
+        const newTask = {
+          ...task,
+          id: `task-${Date.now()}-recurring`,
+          status: 'open',
+          completed: false,
+          startTime: nextStartDate.toISOString(),
+          dueTime: nextDueDate.toISOString(),
+          createdAt: new Date(),
+        }
+        
+        // Mark current task as done AND add new task
+        const updatedTasks = [...prevTasks]
+        updatedTasks[taskIndex] = { ...task, completed: true, status: 'done' }
+        return [newTask, ...updatedTasks] // Add new task to top
+      }
+      
+      // Regular toggle (no recurrence)
+      return prevTasks.map((t) =>
+        t.id === String(id) ? { ...t, completed: !t.completed, status: t.completed ? "open" : "done" } : t
       )
-    )
+    })
   }
 
   // Check if any filters are active
@@ -105,12 +199,28 @@ export default function TasksPage() {
   const filteredTasks = useMemo(() => {
     let result = [...tasks]
 
-    // 1. Search by title
+    // 1. Search by title, description, and tags
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase()
-      result = result.filter(task => 
-        task.title.toLowerCase().includes(query)
-      )
+      result = result.filter(task => {
+        // Check title
+        if (task.title.toLowerCase().includes(query)) return true
+        
+        // Check description (with type assertion)
+        const taskWithDesc = task as any
+        if (taskWithDesc.description && taskWithDesc.description.toLowerCase().includes(query)) return true
+        
+        // Check tags
+        if (task.tags && task.tags.length > 0) {
+          const matchingTag = task.tags.some(tagId => {
+            const tag = AVAILABLE_TAGS.find(t => t.id === tagId)
+            return tag && tag.label.toLowerCase().includes(query)
+          })
+          if (matchingTag) return true
+        }
+        
+        return false
+      })
     }
 
     // 2. Filter by Status
@@ -424,14 +534,28 @@ export default function TasksPage() {
 
   // Handle saving task (create or update)
   const handleSaveTask = (task: any) => {
-    if (editingTask) {
-      // Update existing task
+    console.log('Saving task:', task)
+    
+    // Check if this is an update (has ID and exists in tasks)
+    const existingTask = task.id ? tasks.find(t => t.id === task.id) : null
+    
+    if (existingTask) {
+      // Scenario A: Update existing task
+      console.log('Updating existing task:', task.id)
       setTasks((prevTasks) =>
         prevTasks.map((t) => (t.id === task.id ? { ...t, ...task } : t))
       )
     } else {
-      // Add new task
-      setTasks((prevTasks) => [...prevTasks, task])
+      // Scenario B: Create new task
+      console.log('Creating new task')
+      const newTask = {
+        ...task,
+        id: task.id || `task-${Date.now()}`, // Generate unique ID if missing
+        createdAt: task.createdAt || new Date(),
+        status: task.status || 'open',
+      }
+      // Add to TOP of list
+      setTasks((prevTasks) => [newTask, ...prevTasks])
     }
   }
 
@@ -464,7 +588,11 @@ export default function TasksPage() {
       {/* Upper Control Bar - Task View Toggle / Search */}
       <div className="bg-white px-4 py-4 flex items-center gap-2">
         {/* Back arrow */}
-        <button onClick={() => router.back()} className="h-auto p-3 shrink-0 flex items-center justify-center">
+        <button 
+          type="button"
+          onClick={() => router.back()} 
+          className="h-auto p-3 shrink-0 flex items-center justify-center"
+        >
           <ChevronLeft size={24} strokeWidth={3} />
         </button>
 
@@ -496,6 +624,18 @@ export default function TasksPage() {
 
             {/* Right side icons - default state */}
             <div className="flex items-center gap-1 shrink-0">
+              {/* Clock Status Toggle - for testing billable tasks */}
+              <button 
+                onClick={() => setIsClockedIn(!isClockedIn)}
+                className={`h-auto p-3 rounded-full flex items-center justify-center transition-colors ${
+                  isClockedIn 
+                    ? 'bg-emerald-100 hover:bg-emerald-200' 
+                    : 'bg-amber-100 hover:bg-amber-200'
+                }`}
+                title={isClockedIn ? 'Clocked In (Click to Clock Out)' : 'Off the Clock (Click to Clock In)'}
+              >
+                <Clock size={24} className={isClockedIn ? 'text-emerald-600' : 'text-amber-600'} />
+              </button>
               <button 
                 onClick={() => setIsSearchOpen(true)}
                 className="h-auto p-3 bg-gray-100 rounded-full hover:bg-gray-200 flex items-center justify-center"
@@ -520,7 +660,7 @@ export default function TasksPage() {
               <Search size={20} className="text-gray-400 shrink-0" />
               <input
                 type="text"
-                placeholder="Search"
+                placeholder="Search tasks..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="flex-1 bg-transparent text-gray-900 placeholder:text-gray-400 outline-none text-sm"
@@ -528,16 +668,18 @@ export default function TasksPage() {
               />
             </div>
 
-            {/* Close button */}
-            <button
+            {/* Cancel button */}
+            <Button
+              type="button"
+              variant="ghost"
               onClick={() => {
                 setIsSearchOpen(false)
                 setSearchQuery("")
               }}
-              className="text-blue-500 font-medium text-base px-2 shrink-0"
+              className="text-blue-500 hover:text-blue-600 font-medium text-base px-4 shrink-0 h-auto"
             >
-              Close
-            </button>
+              Cancel
+            </Button>
           </>
         )}
       </div>
@@ -557,7 +699,11 @@ export default function TasksPage() {
 
         {/* Date Range Selector with Popover */}
         <div className="flex items-center bg-gray-100 rounded-full px-3 py-2 gap-2 flex-1 min-w-0 h-12">
-          <button onClick={goToPreviousDay} className="h-auto p-3 shrink-0 flex items-center justify-center">
+          <button 
+            type="button"
+            onClick={goToPreviousDay} 
+            className="h-auto p-3 shrink-0 flex items-center justify-center"
+          >
             <ChevronLeft size={24} />
           </button>
           
@@ -599,7 +745,11 @@ export default function TasksPage() {
             </PopoverContent>
           </Popover>
 
-          <button onClick={goToNextDay} className="h-auto p-3 shrink-0 flex items-center justify-center">
+          <button 
+            type="button"
+            onClick={goToNextDay} 
+            className="h-auto p-3 shrink-0 flex items-center justify-center"
+          >
             <ChevronRight size={24} />
           </button>
         </div>
@@ -658,10 +808,27 @@ export default function TasksPage() {
           {isOpenTasksExpanded && (
             openTasks.length === 0 ? (
               <div className="bg-white rounded-lg p-8 text-center border border-gray-200">
-                {hasActiveFilters ? (
+                {searchQuery.trim() ? (
+                  <>
+                    <p className="text-gray-500 mb-2">No results found for</p>
+                    <p className="text-gray-900 font-semibold mb-4">&ldquo;{searchQuery}&rdquo;</p>
+                    <p className="text-gray-400 text-sm mb-4">Try searching by task title, description, or tag</p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSearchQuery("")
+                        setIsSearchOpen(false)
+                      }}
+                      className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium"
+                    >
+                      Clear Search
+                    </button>
+                  </>
+                ) : hasActiveFilters ? (
                   <>
                     <p className="text-gray-500 mb-4">No tasks match your filters.</p>
                     <button
+                      type="button"
                       onClick={clearAllFilters}
                       className="px-6 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 font-medium"
                     >
@@ -681,6 +848,8 @@ export default function TasksPage() {
                   dueDate={formatTaskDate(task.dueTime)}
                   status={task.status}
                   onClick={() => setViewingTask(task)}
+                  isBillable={(task as any).isBillable}
+                  billableRate={(task as any).billableRate}
                 />
               ))
             )
@@ -709,6 +878,8 @@ export default function TasksPage() {
               dueDate={formatTaskDate(task.dueTime)}
               status={task.status}
               onClick={() => setViewingTask(task)}
+              isBillable={(task as any).isBillable}
+              billableRate={(task as any).billableRate}
             />
           ))}
         </div>
@@ -803,6 +974,8 @@ export default function TasksPage() {
           onEdit={handleEdit}
           onCopy={handleCopyTask}
           onDelete={handleDeleteTask}
+          onComplete={toggleTask}
+          isClockedIn={isClockedIn}
         />
       )}
 
@@ -815,6 +988,7 @@ export default function TasksPage() {
         }}
         onSave={handleSaveTask}
         onDelete={handleDeleteTask}
+        onComplete={toggleTask}
         initialTask={editingTask}
       />
 

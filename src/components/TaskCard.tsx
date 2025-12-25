@@ -8,9 +8,11 @@ interface TaskCardProps {
   dueDate: string
   status: 'late' | 'new' | 'todo' | 'done' | string // Allow string for flexibility
   onClick?: () => void
+  isBillable?: boolean
+  billableRate?: number
 }
 
-export function TaskCard({ title, startDate, dueDate, status, onClick }: TaskCardProps) {
+export function TaskCard({ title, startDate, dueDate, status, onClick, isBillable, billableRate }: TaskCardProps) {
   
   // Helper to determine background color based on status
   const getCardStyle = (s: string) => {
@@ -50,6 +52,13 @@ export function TaskCard({ title, startDate, dueDate, status, onClick }: TaskCar
           </span>
         </div>
       </div>
+
+      {/* Billable Badge */}
+      {isBillable && billableRate && (
+        <div className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold shrink-0">
+          💰 ${billableRate.toFixed(2)}
+        </div>
+      )}
 
       {/* Right: Chevron */}
       <ChevronRight className="h-5 w-5 text-gray-400 shrink-0" />

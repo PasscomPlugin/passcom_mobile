@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef } from "react"
+import { useState, useRef, useEffect } from "react"
 import { ChevronLeft, MoreVertical, Copy, Edit, Trash2, Clock, AlertCircle, User, Tag, MapPin, CheckCircle, Check, Camera, X, FileText } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DUMMY_USERS } from "@/data/dummyTasks"
@@ -40,6 +40,9 @@ interface Task {
   checklist?: ChecklistItem[]
   requirePhoto?: boolean
   proofPhoto?: string
+  isBillable?: boolean
+  billableDurationMinutes?: number
+  billableRate?: number
   createdBy?: {
     name: string
     avatar: string
@@ -54,16 +57,57 @@ interface TaskViewerProps {
   onEdit: (task: Task) => void
   onCopy: (task: Task) => void
   onDelete: (taskId: string) => void
+  onComplete: (taskId: string | number) => void
+  isClockedIn?: boolean
 }
 
-export function TaskViewer({ task, onClose, onEdit, onCopy, onDelete }: TaskViewerProps) {
+export function TaskViewer({ task, onClose, onEdit, onCopy, onDelete, onComplete, isClockedIn = true }: TaskViewerProps) {
   const [showReminderSheet, setShowReminderSheet] = useState(false)
   const [checklist, setChecklist] = useState<ChecklistItem[]>(task.checklist || [])
   const [proofPhoto, setProofPhoto] = useState<string | null>(task.proofPhoto || null)
   const [isProofMenuOpen, setIsProofMenuOpen] = useState(false)
   const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const [isOvertime, setIsOvertime] = useState(false)
+  const [isMounted, setIsMounted] = useState(false) // Prevent hydration mismatch
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Set mounted state after hydration
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+
+  // Billable timer logic - only runs if billable, off the clock, AND client-side mounted
+  useEffect(() => {
+    if (isMounted && task.isBillable && !isClockedIn) {
+      const interval = setInterval(() => {
+        setElapsedSeconds(prev => {
+          const newSeconds = prev + 1
+          // Check if overtime
+          if (task.billableDurationMinutes && newSeconds / 60 > task.billableDurationMinutes) {
+            setIsOvertime(true)
+          }
+          return newSeconds
+        })
+      }, 1000)
+
+      return () => clearInterval(interval)
+    }
+  }, [isMounted, task.isBillable, isClockedIn, task.billableDurationMinutes])
+
+  // Format timer display
+  const formatTimer = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
+  }
+
+  // Calculate progress percentage
+  const getProgress = (): number => {
+    if (!task.billableDurationMinutes) return 0
+    return Math.min(100, (elapsedSeconds / 60 / task.billableDurationMinutes) * 100)
+  }
 
   // Helper to get user details from assigneeId
   const getAssignedUser = () => {
@@ -121,7 +165,9 @@ export function TaskViewer({ task, onClose, onEdit, onCopy, onDelete }: TaskView
     <>
       <div className="fixed inset-0 z-50 bg-white flex flex-col">
         {/* Header */}
-        <div className="sticky top-0 bg-white border-b px-4 py-4 flex items-center gap-4 z-10">
+        <div className={`sticky top-0 border-b px-4 py-4 flex items-center gap-4 z-10 ${
+          task.isBillable && !isClockedIn ? 'bg-emerald-50' : 'bg-white'
+        }`}>
           <button 
             type="button"
             onClick={(e) => {
@@ -214,6 +260,39 @@ export function TaskViewer({ task, onClose, onEdit, onCopy, onDelete }: TaskView
             )}
           </div>
         </div>
+
+        {/* Billable Timer Display - Only if billable, off clock, and mounted */}
+        {isMounted && task.isBillable && !isClockedIn && (
+          <div className={`px-6 py-4 border-b ${isOvertime ? 'bg-red-50' : 'bg-emerald-50'}`}>
+            <div className="flex items-center justify-between mb-2">
+              <span className={`font-semibold ${isOvertime ? 'text-red-700' : 'text-emerald-700'}`}>
+                💰 Billable Session Active
+              </span>
+              <div className="text-right">
+                <div className={`text-lg font-bold ${isOvertime ? 'text-red-700' : 'text-emerald-700'}`}>
+                  {formatTimer(elapsedSeconds)} / {task.billableDurationMinutes?.toString().padStart(2, '0')}:00
+                </div>
+                <div className="text-xs text-gray-600">
+                  ${task.billableRate?.toFixed(2)} bounty
+                </div>
+              </div>
+            </div>
+            {/* Progress Bar */}
+            <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div 
+                className={`h-full transition-all duration-1000 ${
+                  isOvertime ? 'bg-red-500' : 'bg-emerald-500'
+                }`}
+                style={{ width: `${getProgress()}%` }}
+              />
+            </div>
+            {isOvertime && (
+              <p className="text-xs text-red-600 mt-2 font-medium">
+                ⚠️ Time limit exceeded - contact manager
+              </p>
+            )}
+          </div>
+        )}
 
         {/* Body - Scrollable */}
         <div className="flex-1 overflow-auto px-6 py-6">
@@ -444,25 +523,48 @@ export function TaskViewer({ task, onClose, onEdit, onCopy, onDelete }: TaskView
               Send reminder
             </Button>
             <Button 
-              disabled={!canMarkAsDone()}
+              disabled={!canMarkAsDone() || (task.isBillable && !isClockedIn && isOvertime)}
               className={`flex-1 h-12 text-white text-base font-medium rounded-full flex items-center justify-center gap-2 transition-all ${
-                canMarkAsDone() 
-                  ? 'bg-teal-400 hover:bg-teal-500' 
+                task.isBillable && !isClockedIn && isOvertime
+                  ? 'bg-red-500 hover:bg-red-600'
+                  : canMarkAsDone() 
+                  ? (task.isBillable && !isClockedIn ? 'bg-emerald-500 hover:bg-emerald-600' : 'bg-teal-400 hover:bg-teal-500')
                   : 'bg-gray-300 cursor-not-allowed opacity-60'
               }`}
               onClick={() => {
+                // Overtime billable tasks need manager approval
+                if (task.isBillable && !isClockedIn && isOvertime) {
+                  alert("Time limit exceeded. Please contact your supervisor to resolve this task.")
+                  return
+                }
+
                 if (!canMarkAsDone()) {
                   if (!isPhotoProofComplete()) {
                     alert("You must upload a photo to complete this task.")
                   } else if (!isChecklistComplete()) {
                     alert("Please complete all checklist items first.")
                   }
+                  return
+                }
+                
+                // Mark task as complete
+                if (task.id) {
+                  // Show success message for billable tasks
+                  if (task.isBillable && !isClockedIn) {
+                    alert(`Task Complete! $${task.billableRate?.toFixed(2)} credited to your account.`)
+                  }
+                  onComplete(task.id)
+                  onClose() // Close viewer to show updated list
                 }
               }}
             >
               <CheckCircle className="h-5 w-5" />
-              Mark as done
-              {!canMarkAsDone() && (
+              {task.isBillable && !isClockedIn && isOvertime 
+                ? 'Time Limit Exceeded - Contact Manager'
+                : task.isBillable && !isClockedIn
+                ? `Complete & Claim $${task.billableRate?.toFixed(2)}`
+                : 'Mark as done'}
+              {!canMarkAsDone() && !isOvertime && (
                 <span className="text-xs ml-1">
                   {!isPhotoProofComplete() ? '(Photo required)' : '(Complete checklist)'}
                 </span>

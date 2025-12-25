@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { ChevronLeft, Paperclip, X, Check, Camera, FileText, Image, Play } from "lucide-react"
+import { ChevronLeft, Paperclip, X, Check, Camera, FileText, Image, Play, Clock, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -10,6 +10,8 @@ import { Calendar } from "@/components/ui/calendar"
 import { AVAILABLE_TAGS } from "@/data/tags"
 import TagSelectionSheet from "@/components/TagSelectionSheet"
 import { MediaCropEditor } from "@/components/MediaCropEditor"
+import { RecurrenceSheet, Recurrence } from "@/components/RecurrenceSheet"
+import { BountyConfigSheet } from "@/components/BountyConfigSheet"
 
 const AVAILABLE_LOCATIONS = [
   { id: "room101", name: "Room 101" },
@@ -41,6 +43,7 @@ interface Task {
   attachments?: string[]
   location?: string
   checklist?: ChecklistItem[]
+  recurrence?: Recurrence | null
 }
 
 interface TaskEditorProps {
@@ -48,10 +51,11 @@ interface TaskEditorProps {
   onClose: () => void
   onSave: (task: Task) => void
   onDelete?: (taskId: string) => void
+  onComplete?: (taskId: string | number) => void
   initialTask?: Task | null
 }
 
-export function TaskEditor({ isVisible, onClose, onSave, onDelete, initialTask }: TaskEditorProps) {
+export function TaskEditor({ isVisible, onClose, onSave, onDelete, onComplete, initialTask }: TaskEditorProps) {
   const cameraInputRef = useRef<HTMLInputElement>(null)
   const filesInputRef = useRef<HTMLInputElement>(null)
   const imagesInputRef = useRef<HTMLInputElement>(null)
@@ -78,7 +82,16 @@ export function TaskEditor({ isVisible, onClose, onSave, onDelete, initialTask }
   const [isStartDateOpen, setIsStartDateOpen] = useState(false)
   const [isDueDateOpen, setIsDueDateOpen] = useState(false)
   const [mediaInEditor, setMediaInEditor] = useState<{ url: string; index: number } | null>(null)
+  const [recurrence, setRecurrence] = useState<Recurrence | null>(null)
+  const [isRecurrenceSheetOpen, setIsRecurrenceSheetOpen] = useState(false)
   const [videoInViewer, setVideoInViewer] = useState<string | null>(null)
+  
+  // Bounty state
+  const [isBillable, setIsBillable] = useState(false)
+  const [billableDurationMinutes, setBillableDurationMinutes] = useState(15)
+  const [billableRate, setBillableRate] = useState(5.00)
+  const [bountyAutoApprove, setBountyAutoApprove] = useState(false)
+  const [isBountySheetOpen, setIsBountySheetOpen] = useState(false)
 
   // Ensure we're on the client before using Date functions
   useEffect(() => {
@@ -140,6 +153,11 @@ export function TaskEditor({ isVisible, onClose, onSave, onDelete, initialTask }
       setSelectedTags(initialTask.tags || [])
       setSelectedLocation(initialTask.location || "")
       setChecklist(initialTask.checklist || [])
+      setRecurrence(initialTask.recurrence || null)
+      setIsBillable((initialTask as any).isBillable || false)
+      setBillableDurationMinutes((initialTask as any).billableDurationMinutes || 15)
+      setBillableRate((initialTask as any).billableRate || 5.00)
+      setBountyAutoApprove((initialTask as any).bountyAutoApprove || false)
       if (initialTask.startTime) {
         setStartDateTime(new Date(initialTask.startTime).toISOString().slice(0, 16))
       }
@@ -155,11 +173,16 @@ export function TaskEditor({ isVisible, onClose, onSave, onDelete, initialTask }
       setAttachments([])
       setAttachmentUrls([])
       setSelectedTags([])
+      setRecurrence(null)
       setSelectedLocation("")
       setChecklist([])
       setStartDateTime(getDefaultStartTime()) // Set to current time
       setDueDateTime("") // Leave empty - shows "Select"
       setIsDueTimeExplicitlySet(false)
+      setIsBillable(false)
+      setBillableDurationMinutes(15)
+      setBillableRate(5.00)
+      setBountyAutoApprove(false)
     }
   }, [initialTask, isVisible, isClient])
 
@@ -238,9 +261,48 @@ export function TaskEditor({ isVisible, onClose, onSave, onDelete, initialTask }
       checklist,
       attachments: attachments.map(f => f.name),
       completed: initialTask?.completed || false,
+      recurrence: recurrence,
+      ...(isBillable && {
+        isBillable: true,
+        billableDurationMinutes,
+        billableRate,
+        bountyAutoApprove,
+      }),
     }
     onSave(newTask)
     onClose()
+  }
+
+  // Helper function to format recurrence text
+  const formatRecurrence = (rec: Recurrence | null): string => {
+    if (!rec) return "Does not repeat"
+    
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
+    const interval = rec.interval || 1
+    
+    if (rec.type === 'daily') {
+      return interval === 1 ? "Daily" : `Every ${interval} days`
+    }
+    if (rec.type === 'weekly') {
+      if (interval === 1) {
+        if (rec.daysOfWeek && rec.daysOfWeek.length > 0) {
+          const days = rec.daysOfWeek.map(d => dayNames[d]).join(", ")
+          return `Weekly on ${days}`
+        }
+        return "Weekly"
+      }
+      return `Every ${interval} weeks`
+    }
+    if (rec.type === 'monthly') {
+      return interval === 1 ? "Monthly" : `Every ${interval} months`
+    }
+    if (rec.type === 'yearly') {
+      return interval === 1 ? "Yearly" : `Every ${interval} years`
+    }
+    if (rec.type === 'custom') {
+      return "Custom recurrence"
+    }
+    return "Does not repeat"
   }
 
   if (!isVisible) return null
@@ -249,7 +311,11 @@ export function TaskEditor({ isVisible, onClose, onSave, onDelete, initialTask }
     <div className="fixed inset-0 bg-white flex flex-col z-50">
       {/* Header */}
       <div className="sticky top-0 bg-white border-b px-4 py-4 flex items-center gap-4 z-10">
-        <button onClick={onClose} className="h-auto p-3 shrink-0 flex items-center justify-center -ml-3">
+        <button 
+          type="button"
+          onClick={onClose}
+          className="h-auto p-3 shrink-0 flex items-center justify-center -ml-3"
+        >
           <ChevronLeft className="h-6 w-6 text-gray-900" strokeWidth={2.5} />
         </button>
         <h1 className="text-lg font-semibold flex-1 text-center">
@@ -265,18 +331,25 @@ export function TaskEditor({ isVisible, onClose, onSave, onDelete, initialTask }
 
       {/* Scrollable Content */}
       <div className="flex-1 overflow-auto px-4 pt-0">
-        {/* Task Title */}
-        <div className="h-[50px] flex items-center border-b">
+        {/* Task Title with Paperclip */}
+        <div className="h-[50px] flex items-center gap-2">
           <Input
             value={taskTitle}
             onChange={(e) => setTaskTitle(e.target.value)}
-            className="text-xl font-bold border-0 px-0 h-full focus-visible:ring-0 focus-visible:ring-offset-0"
+            className="text-xl font-bold border-0 px-0 h-full focus-visible:ring-0 focus-visible:ring-offset-0 flex-1 placeholder:text-gray-400"
             placeholder="Task title"
           />
+          <button 
+            type="button"
+            className="hover:opacity-80 shrink-0"
+            onClick={() => setIsAttachMenuOpen(!isAttachMenuOpen)}
+          >
+            <Paperclip className="h-6 w-6 text-blue-500" />
+          </button>
         </div>
 
-        {/* Description Area */}
-        <div className="mt-5 mb-3">
+        {/* Description with Border */}
+        <div className="mt-1 mb-3">
           <Textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -360,288 +433,147 @@ export function TaskEditor({ isVisible, onClose, onSave, onDelete, initialTask }
                           className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <X className="h-4 w-4" />
-                        </button>
-                      </div>
+            </button>
+          </div>
                     )}
                   </div>
                 )
               })}
             </div>
           )}
-
-          <div className="flex items-center justify-between mt-2">
-            <label className="flex items-center gap-2 text-base text-gray-700 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={requirePhoto}
-                onChange={(e) => setRequirePhoto(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
-              />
-              <span>Require photo for completion</span>
-            </label>
-            <div className="relative">
-              <button 
-                className="hover:opacity-80"
-                onClick={() => setIsAttachMenuOpen(!isAttachMenuOpen)}
-              >
-                <Paperclip className="h-6 w-6 text-blue-500" />
-              </button>
-              
-              {/* Attachment Menu */}
-              {isAttachMenuOpen && (
-                <>
-                  <div 
-                    className="fixed inset-0 z-10" 
-                    onClick={() => setIsAttachMenuOpen(false)}
-                  />
-                  <div className="absolute right-0 top-full mt-2 bg-white border rounded-lg shadow-lg py-2 w-48 z-20">
-                    <button
-                      onClick={() => {
-                        cameraInputRef.current?.click()
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50"
-                    >
-                      <Camera className="h-5 w-5 text-gray-700" />
-                      <span className="text-base">Camera</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        filesInputRef.current?.click()
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50"
-                    >
-                      <FileText className="h-5 w-5 text-gray-700" />
-                      <span className="text-base">Files</span>
-                    </button>
-                    <button
-                      onClick={() => {
-                        imagesInputRef.current?.click()
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50"
-                    >
-                      <Image className="h-5 w-5 text-gray-700" />
-                      <span className="text-base">Saved Images</span>
-                    </button>
-                  </div>
-                </>
-              )}
-            </div>
-            
-            {/* Hidden File Inputs */}
-            <input
-              ref={cameraInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-            <input
-              ref={filesInputRef}
-              type="file"
-              multiple
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-            <input
-              ref={imagesInputRef}
-              type="file"
-              accept="image/*"
-              multiple
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-          </div>
         </div>
+
+        {/* Hidden File Inputs */}
+        <input
+          ref={cameraInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+        <input
+          ref={filesInputRef}
+          type="file"
+          multiple
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+        <input
+          ref={imagesInputRef}
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={handleFileSelect}
+          className="hidden"
+        />
+
+        {/* Attachment Menu Popover */}
+        {isAttachMenuOpen && (
+          <>
+            <div 
+              className="fixed inset-0 z-10" 
+              onClick={() => setIsAttachMenuOpen(false)}
+            />
+            <div className="fixed top-[120px] right-4 bg-white border rounded-lg shadow-lg py-2 w-48 z-20">
+              <button
+                type="button"
+                onClick={() => {
+                  cameraInputRef.current?.click()
+                  setIsAttachMenuOpen(false)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50"
+              >
+                <Camera className="h-5 w-5 text-gray-700" />
+                <span className="text-base">Camera</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  filesInputRef.current?.click()
+                  setIsAttachMenuOpen(false)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50"
+              >
+                <FileText className="h-5 w-5 text-gray-700" />
+                <span className="text-base">Files</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  imagesInputRef.current?.click()
+                  setIsAttachMenuOpen(false)
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50"
+              >
+                <Image className="h-5 w-5 text-gray-700" />
+                <span className="text-base">Saved Images</span>
+              </button>
+            </div>
+          </>
+        )}
 
         {/* Start Time */}
         <div className="flex items-center justify-between h-[50px] border-b">
           <span className="text-lg font-normal">Start time</span>
-          <div className="flex items-center gap-3">
-            {startDateTime ? (
+          <div className="flex items-center gap-2">
+            <span className="text-blue-500 text-base">
+              {startDateTime ? new Date(startDateTime).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Select'}
+            </span>
+            {startDateTime && (
               <>
-                <Popover open={isStartDateOpen} onOpenChange={setIsStartDateOpen}>
-                  <PopoverTrigger asChild>
-                    <button className="text-blue-500 text-base cursor-pointer hover:text-blue-600">
-                      {new Date(startDateTime).toLocaleDateString('en-US', { 
-                        month: 'long', 
-                        day: 'numeric', 
-                        year: 'numeric' 
-                      })}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                      mode="single"
-                      selected={startDateTime ? new Date(startDateTime) : undefined}
-                      onSelect={(date) => {
-                        if (date) {
-                          const currentTime = startDateTime ? startDateTime.split('T')[1] || '00:00' : '00:00'
-                          const dateStr = date.toISOString().split('T')[0]
-                          setStartDateTime(`${dateStr}T${currentTime}`)
-                          setIsStartDateOpen(false)
-                        }
-                      }}
-                      initialFocus
-                      className="[--cell-size:3rem]"
-                    />
-                  </PopoverContent>
-                </Popover>
-                <div className="w-px h-4 bg-gray-300" />
-                <button
-                  onClick={() => startTimeInputRef.current?.showPicker()}
-                  className="text-blue-500 text-base cursor-pointer hover:text-blue-600"
-                >
-                  {new Date(startDateTime).toLocaleTimeString('en-US', { 
-                    hour: 'numeric', 
-                    minute: '2-digit',
-                    hour12: true 
-                  })}
-                </button>
+                <span className="text-blue-500 text-base">
+                  {new Date(startDateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                </span>
                 <button 
-                  className="text-gray-400 hover:text-gray-600 ml-1"
+                  type="button"
+                  className="text-gray-400 hover:text-gray-600"
                   onClick={() => setStartDateTime("")}
                 >
-                  <X className="h-5 w-5" />
-                </button>
+              <X className="h-5 w-5" />
+            </button>
               </>
-            ) : (
-              <Popover open={isStartDateOpen} onOpenChange={setIsStartDateOpen}>
-                <PopoverTrigger asChild>
-                  <button className="text-blue-500 text-base cursor-pointer hover:text-blue-600">
-                    Select
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                  <Calendar
-                    mode="single"
-                    selected={undefined}
-                    onSelect={(date) => {
-                      if (date) {
-                        const dateStr = date.toISOString().split('T')[0]
-                        const now = new Date()
-                        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-                        setStartDateTime(`${dateStr}T${timeStr}`)
-                        setIsStartDateOpen(false)
-                      }
-                    }}
-                    initialFocus
-                    className="[--cell-size:3rem]"
-                  />
-                </PopoverContent>
-              </Popover>
             )}
-            <input
-              ref={startTimeInputRef}
-              id="start-time-input"
-              type="time"
-              value={startDateTime ? startDateTime.split('T')[1] || '' : ''}
-              onChange={(e) => {
-                const currentDate = startDateTime ? startDateTime.split('T')[0] : new Date().toISOString().split('T')[0]
-                setStartDateTime(`${currentDate}T${e.target.value}`)
-              }}
-              className="hidden"
-            />
           </div>
         </div>
 
         {/* Due Time */}
         <div className="flex items-center justify-between h-[50px] border-b">
           <span className="text-lg font-normal">Due time</span>
-          <div className="flex items-center gap-3">
-            {getEffectiveDueTime() ? (
+          <div className="flex items-center gap-2">
+            <span className="text-blue-500 text-base">
+              {dueDateTime ? new Date(dueDateTime).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Select'}
+            </span>
+            {dueDateTime && (
               <>
-                <Popover open={isDueDateOpen} onOpenChange={setIsDueDateOpen}>
-                  <PopoverTrigger asChild>
-                    <button className="text-blue-500 text-base cursor-pointer hover:text-blue-600">
-                      {new Date(getEffectiveDueTime()).toLocaleDateString('en-US', { 
-                        month: 'long', 
-                        day: 'numeric', 
-                        year: 'numeric' 
-                      })}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                      mode="single"
-                      selected={getEffectiveDueTime() ? new Date(getEffectiveDueTime()) : undefined}
-                      onSelect={(date) => {
-                        if (date) {
-                          const effectiveTime = getEffectiveDueTime()
-                          const currentTime = effectiveTime ? effectiveTime.split('T')[1] || '00:00' : '00:00'
-                          const dateStr = date.toISOString().split('T')[0]
-                          setDueDateTime(`${dateStr}T${currentTime}`)
-                          setIsDueTimeExplicitlySet(true)
-                          setIsDueDateOpen(false)
-                        }
-                      }}
-                      initialFocus
-                      className="[--cell-size:3rem]"
-                    />
-                  </PopoverContent>
-                </Popover>
-                <div className="w-px h-4 bg-gray-300" />
-                <button
-                  onClick={() => dueTimeInputRef.current?.showPicker()}
-                  className="text-blue-500 text-base cursor-pointer hover:text-blue-600"
-                >
-                  {new Date(getEffectiveDueTime()).toLocaleTimeString('en-US', { 
-                    hour: 'numeric', 
-                    minute: '2-digit',
-                    hour12: true 
-                  })}
-                </button>
+                <span className="text-blue-500 text-base">
+                  {new Date(dueDateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                </span>
                 <button 
-                  className="text-gray-400 hover:text-gray-600 ml-1"
+                  type="button"
+                  className="text-gray-400 hover:text-gray-600"
                   onClick={() => {
                     setDueDateTime("")
                     setIsDueTimeExplicitlySet(false)
                   }}
                 >
-                  <X className="h-5 w-5" />
-                </button>
+              <X className="h-5 w-5" />
+            </button>
               </>
-            ) : (
-              <Popover open={isDueDateOpen} onOpenChange={setIsDueDateOpen}>
-                <PopoverTrigger asChild>
-                  <button className="text-blue-500 text-base cursor-pointer hover:text-blue-600">
-                    Select
-                  </button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                  <Calendar
-                    mode="single"
-                    selected={undefined}
-                    onSelect={(date) => {
-                      if (date) {
-                        const dateStr = date.toISOString().split('T')[0]
-                        const now = new Date()
-                        const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-                        setDueDateTime(`${dateStr}T${timeStr}`)
-                        setIsDueTimeExplicitlySet(true)
-                        setIsDueDateOpen(false)
-                      }
-                    }}
-                    initialFocus
-                    className="[--cell-size:3rem]"
-                  />
-                </PopoverContent>
-              </Popover>
             )}
-            <input
-              ref={dueTimeInputRef}
-              id="due-time-input"
-              type="time"
-              value={dueDateTime ? dueDateTime.split('T')[1] || '' : ''}
-              onChange={(e) => {
-                const effectiveDateTime = getEffectiveDueTime()
-                const currentDate = dueDateTime ? dueDateTime.split('T')[0] : (effectiveDateTime ? effectiveDateTime.split('T')[0] : new Date().toISOString().split('T')[0])
-                setDueDateTime(`${currentDate}T${e.target.value}`)
-                setIsDueTimeExplicitlySet(true)
-              }}
-              className="hidden"
-            />
           </div>
+        </div>
+
+        {/* Repeat */}
+        <div className="flex items-center justify-between h-[50px] border-b">
+          <span className="text-lg font-normal">Repeat</span>
+          <button 
+            type="button"
+            onClick={() => setIsRecurrenceSheetOpen(true)}
+            className="text-blue-500 text-base hover:text-blue-600"
+          >
+            {formatRecurrence(recurrence)}
+          </button>
         </div>
 
         {/* Assigned To */}
@@ -683,8 +615,8 @@ export function TaskEditor({ isVisible, onClose, onSave, onDelete, initialTask }
               className="text-blue-500 hover:text-blue-600 hover:bg-blue-50 h-auto py-1 text-base"
               onClick={() => setIsTagSheetOpen(true)}
             >
-              Select
-            </Button>
+            Select
+          </Button>
           )}
         </div>
 
@@ -704,16 +636,65 @@ export function TaskEditor({ isVisible, onClose, onSave, onDelete, initialTask }
               className="text-blue-500 hover:text-blue-600 hover:bg-blue-50 h-auto py-1 text-base"
               onClick={() => setShowLocationSelector(true)}
             >
-              Select
-            </Button>
+            Select
+          </Button>
           )}
         </div>
+
+        {/* Checkboxes Section */}
+        <div className="mt-4 mb-4 space-y-4">
+          {/* Require Photo */}
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={requirePhoto}
+              onChange={(e) => setRequirePhoto(e.target.checked)}
+              className="h-5 w-5 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+            />
+            <span className="text-base text-gray-900">Require Photo of Finished Task</span>
+          </label>
+
+          {/* Secret Task */}
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              className="h-5 w-5 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+            />
+            <span className="text-base text-gray-900">Secret Task - Hide from shared tablet</span>
+          </label>
+
+          {/* Bounty */}
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isBillable}
+                onChange={(e) => {
+                  setIsBillable(e.target.checked)
+                  if (e.target.checked) {
+                    setIsBountySheetOpen(true)
+                  }
+                }}
+                className="h-5 w-5 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+              />
+              <span className="text-base text-gray-900">Bounty - Allow off-clock, paid completion</span>
+            </label>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setIsBountySheetOpen(true)}
+              className="text-blue-500 hover:text-blue-600 hover:bg-blue-50 h-auto py-1 text-base"
+            >
+              Configure
+          </Button>
+        </div>
+      </div>
 
         {/* Checklist */}
         <div className="border-b py-3">
           <div className="flex items-center justify-between h-[50px]">
             <span className="text-lg font-normal">Checklist</span>
-            <Button 
+        <Button 
               variant="ghost" 
               className="text-blue-500 hover:text-blue-600 hover:bg-blue-50 h-auto py-1 text-base"
               onClick={() => setIsAddingChecklistItem(true)}
@@ -736,7 +717,10 @@ export function TaskEditor({ isVisible, onClose, onSave, onDelete, initialTask }
                   <span className={`flex-1 text-base ${item.isChecked ? 'line-through text-gray-400' : ''}`}>
                     {item.text}
                   </span>
-                  <button onClick={() => handleRemoveChecklistItem(item.id)}>
+                  <button 
+                    type="button"
+                    onClick={() => handleRemoveChecklistItem(item.id)}
+                  >
                     <X className="h-4 w-4 text-gray-400 hover:text-gray-600" />
                   </button>
                 </div>
@@ -764,8 +748,8 @@ export function TaskEditor({ isVisible, onClose, onSave, onDelete, initialTask }
               />
               <Button size="sm" onClick={handleAddChecklistItem}>
                 <Check className="h-4 w-4" />
-              </Button>
-              <Button 
+        </Button>
+        <Button 
                 size="sm" 
                 variant="ghost"
                 onClick={() => {
@@ -774,7 +758,7 @@ export function TaskEditor({ isVisible, onClose, onSave, onDelete, initialTask }
                 }}
               >
                 <X className="h-4 w-4" />
-              </Button>
+        </Button>
             </div>
           )}
         </div>
@@ -840,6 +824,25 @@ export function TaskEditor({ isVisible, onClose, onSave, onDelete, initialTask }
           onCropComplete={handleCropComplete}
         />
       )}
+
+      {/* Recurrence Sheet */}
+      <RecurrenceSheet
+        isOpen={isRecurrenceSheetOpen}
+        onClose={() => setIsRecurrenceSheetOpen(false)}
+        value={recurrence}
+        onChange={setRecurrence}
+      />
+
+      {/* Bounty Config Sheet */}
+      <BountyConfigSheet
+        isOpen={isBountySheetOpen}
+        onClose={() => setIsBountySheetOpen(false)}
+        onSave={(minutes, autoApprove) => {
+          setBillableDurationMinutes(minutes)
+          setBountyAutoApprove(autoApprove)
+          setIsBillable(true)
+        }}
+      />
 
       {/* Video Viewer Modal */}
       {videoInViewer && (

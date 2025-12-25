@@ -37,6 +37,25 @@ lastMonth.setMonth(lastMonth.getMonth() - 1)
 
 // Generate 30+ varied tasks
 export const DUMMY_TASKS = [
+  // BILLABLE TASK (For testing bounty timer)
+  {
+    id: "t0",
+    title: "🎯 Quick inventory count",
+    status: "open",
+    priority: "medium",
+    dueDate: tomorrow,
+    dueTime: new Date(tomorrow.getTime() + 10 * 60 * 60 * 1000).toISOString(),
+    startTime: new Date().toISOString(),
+    createdAt: new Date(),
+    assigneeId: "u1",
+    creatorId: "u2",
+    tags: ["urgent"],
+    comments: 0,
+    completed: false,
+    isBillable: true,
+    billableDurationMinutes: 1, // 1 minute for quick testing
+    billableRate: 10.00,
+  },
   // OVERDUE TASKS (Late status)
   {
     id: "t1",
