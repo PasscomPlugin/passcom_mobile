@@ -11,6 +11,12 @@ interface User {
   color: string
 }
 
+interface ActiveFilter {
+  type: 'date' | 'status' | 'tag' | 'creator' | 'assignee'
+  label: string
+  values: any[]
+}
+
 interface SortUserSheetProps {
   isVisible: boolean
   onClose: () => void
@@ -21,6 +27,10 @@ interface SortUserSheetProps {
   onApplyFilters: (selectedIds: string[]) => void
   currentUserId: string
   counts?: Record<string, number>
+  pendingFilters?: ActiveFilter[]
+  calculateMatchingTasks?: (filters: ActiveFilter[]) => any[]
+  allDays?: any[]
+  filterType?: 'creator' | 'assignee'
 }
 
 export default function SortUserSheet({
@@ -33,6 +43,10 @@ export default function SortUserSheet({
   onApplyFilters,
   currentUserId,
   counts = {},
+  pendingFilters = [],
+  calculateMatchingTasks,
+  allDays = [],
+  filterType = 'assignee',
 }: SortUserSheetProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [tempSelected, setTempSelected] = useState<string[]>(activeUserIds)
@@ -56,6 +70,16 @@ export default function SortUserSheet({
     setTempSelected((prev) =>
       prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
     )
+  }
+  
+  // Calculate count for each user option combined with other pending filters
+  const getUserCount = (userId: string) => {
+    if (!calculateMatchingTasks) return null
+    const testFilters = [
+      ...pendingFilters.filter(f => f.type !== filterType),
+      { type: filterType, values: [userId], label: '' }
+    ]
+    return calculateMatchingTasks(testFilters).length
   }
 
   const handleClear = () => {
@@ -138,7 +162,7 @@ export default function SortUserSheet({
                       tempSelected.includes(user.id) ? "font-bold text-gray-900" : "text-gray-900"
                     }`}
                   >
-                    {user.name} {counts[user.id] !== undefined && `(${counts[user.id]})`}
+                    {user.name} {getUserCount(user.id) !== null && `(${getUserCount(user.id)})`}
                   </span>
 
                   {/* Checkbox */}

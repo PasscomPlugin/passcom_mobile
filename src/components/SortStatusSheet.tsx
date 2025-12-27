@@ -4,6 +4,12 @@ import { useState, useEffect } from "react"
 import { X, ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
+interface ActiveFilter {
+  type: 'date' | 'status' | 'tag' | 'creator' | 'assignee'
+  label: string
+  values: any[]
+}
+
 interface SortStatusSheetProps {
   isVisible: boolean
   onClose: () => void
@@ -11,6 +17,9 @@ interface SortStatusSheetProps {
   activeFilters: string[]
   onApplyFilters: (selectedStatuses: string[]) => void
   counts?: Record<string, number>
+  pendingFilters: ActiveFilter[]
+  calculateMatchingTasks: (filters: ActiveFilter[]) => any[]
+  allDays: any[]
 }
 
 export default function SortStatusSheet({
@@ -20,6 +29,9 @@ export default function SortStatusSheet({
   activeFilters,
   onApplyFilters,
   counts = {},
+  pendingFilters,
+  calculateMatchingTasks,
+  allDays,
 }: SortStatusSheetProps) {
   const [tempSelected, setTempSelected] = useState<string[]>(activeFilters)
 
@@ -33,11 +45,20 @@ export default function SortStatusSheet({
   if (!isVisible) return null
 
   const statusOptions = [
-    { id: "late", label: "Late", color: "text-red-600" },
     { id: "new", label: "New", color: "text-gray-900" },
-    { id: "to do", label: "Open", color: "text-gray-900" },
+    { id: "open", label: "Open", color: "text-gray-900" },
+    { id: "late", label: "Late", color: "text-gray-900" },
     { id: "done", label: "Done", color: "text-gray-900" },
   ]
+
+  // Calculate count for each status option combined with other pending filters
+  const getStatusCount = (statusId: string) => {
+    const testFilters = [
+      ...pendingFilters.filter(f => f.type !== 'status'),
+      { type: 'status' as const, values: [statusId], label: '' }
+    ]
+    return calculateMatchingTasks(testFilters).length
+  }
 
   const handleStatusToggle = (statusId: string) => {
     setTempSelected((prev) =>
@@ -92,15 +113,13 @@ export default function SortStatusSheet({
                 <span
                   className={`text-base ${status.color} ${tempSelected.includes(status.id) ? "font-bold" : "font-normal"}`}
                 >
-                  {status.label} {counts[status.id] !== undefined && `(${counts[status.id]})`}
+                  {status.label} ({getStatusCount(status.id)})
                 </span>
                 <div className="flex items-center">
                   <div
                     className={`h-6 w-6 rounded border-2 flex items-center justify-center transition-colors ${
                       tempSelected.includes(status.id)
-                        ? status.id === "late"
-                          ? "bg-red-500 border-red-500"
-                          : "bg-blue-500 border-blue-500"
+                        ? "bg-blue-500 border-blue-500"
                         : "border-gray-300"
                     }`}
                   >
@@ -126,7 +145,7 @@ export default function SortStatusSheet({
         <div className="px-6 py-4 border-t shrink-0">
           <Button
             onClick={handleApply}
-            className="w-full bg-blue-500 hover:bg-blue-600 text-white h-14 rounded-lg text-base font-semibold"
+            className="w-full bg-blue-500 hover:bg-blue-600 text-white h-14 rounded-full text-base font-semibold"
           >
             Apply Filter {tempSelected.length > 0 && `(${tempSelected.length})`}
           </Button>

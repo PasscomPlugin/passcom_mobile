@@ -198,7 +198,7 @@ export default function DateRangeModal({
           <Button
             onClick={handleApplyRange}
             disabled={!startDate || !endDate}
-            className="w-full h-12 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="w-full h-12 rounded-full bg-blue-500 hover:bg-blue-600 text-white font-medium disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
           >
             Apply Range
           </Button>

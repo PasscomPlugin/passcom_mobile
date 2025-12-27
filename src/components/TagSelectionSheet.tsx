@@ -33,14 +33,31 @@ const PRESET_COLORS = [
   { name: "Rose", value: "bg-rose-200 text-rose-800" },
 ]
 
+interface ActiveFilter {
+  type: 'date' | 'status' | 'tag' | 'creator' | 'assignee'
+  label: string
+  values: any[]
+}
+
 interface TagSelectionSheetProps {
   isOpen: boolean
   onClose: () => void
   selectedTagIds: string[]
   onTagsChange: (ids: string[]) => void
+  pendingFilters?: ActiveFilter[]
+  calculateMatchingTasks?: (filters: ActiveFilter[]) => any[]
+  allDays?: any[]
 }
 
-export default function TagSelectionSheet({ isOpen, onClose, selectedTagIds, onTagsChange }: TagSelectionSheetProps) {
+export default function TagSelectionSheet({ 
+  isOpen, 
+  onClose, 
+  selectedTagIds, 
+  onTagsChange,
+  pendingFilters = [],
+  calculateMatchingTasks,
+  allDays = []
+}: TagSelectionSheetProps) {
   // Initialize tags from AVAILABLE_TAGS
   const [tags, setTags] = useState<Tag[]>(AVAILABLE_TAGS)
   const [isPopoverOpen, setIsPopoverOpen] = useState(false)
@@ -48,6 +65,16 @@ export default function TagSelectionSheet({ isOpen, onClose, selectedTagIds, onT
   const [tagName, setTagName] = useState("")
   const [selectedColor, setSelectedColor] = useState(PRESET_COLORS[0].value)
   const [searchQuery, setSearchQuery] = useState("")
+  
+  // Calculate count for each tag option combined with other pending filters
+  const getTagCount = (tagId: string) => {
+    if (!calculateMatchingTasks) return null
+    const testFilters = [
+      ...pendingFilters.filter(f => f.type !== 'tag'),
+      { type: 'tag' as const, values: [tagId], label: '' }
+    ]
+    return calculateMatchingTasks(testFilters).length
+  }
   const [isEditMode, setIsEditMode] = useState(false)
   // Initialize selected tags from prop
   const [selectedTags, setSelectedTags] = useState<string[]>(selectedTagIds)
@@ -163,7 +190,12 @@ export default function TagSelectionSheet({ isOpen, onClose, selectedTagIds, onT
             >
               {/* Left: Colored Tag Pill */}
               <div className="flex items-center gap-3 flex-1">
-                <div className={`px-3 py-1 rounded-full text-sm font-medium ${tag.color}`}>{tag.label}</div>
+                <div className={`px-3 py-1 rounded-full text-sm font-medium ${tag.color}`}>
+                  {tag.label}
+                  {!isEditMode && getTagCount(tag.id) !== null && (
+                    <span className="ml-2 text-xs opacity-70">({getTagCount(tag.id)})</span>
+                  )}
+                </div>
               </div>
 
               {/* Right: Edit/Delete Icons or Checkbox */}
