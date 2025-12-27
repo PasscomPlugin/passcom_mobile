@@ -14,7 +14,7 @@ export default function WorkerFeedPage() {
     greeting: "Good afternoon",
   })
 
-  const [currentPay] = useState(127.5)
+  const [currentPay] = useState(342.50)
 
   const [notificationCount] = useState(3)
   const [taskCount] = useState(1)
@@ -60,11 +60,14 @@ export default function WorkerFeedPage() {
   return (
     <div className="min-h-screen w-full bg-gray-50 flex flex-col">
       <div className="bg-white py-3 flex items-center justify-between">
-        <div className="flex items-start gap-0 pl-4">
+        <button 
+          onClick={() => router.push('/pay')}
+          className="flex items-start gap-0 pl-4 hover:opacity-80 transition-opacity"
+        >
           <div className="text-3xl font-bold text-green-700 leading-none">$</div>
           <div className="text-3xl font-bold text-green-700 leading-none">{Math.floor(currentPay)}</div>
           <div className="text-base font-bold text-green-700 leading-none mt-1">{((currentPay % 1) * 100).toFixed(0).padStart(2, '0')}</div>
-        </div>
+        </button>
         <h1 className="text-xl font-semibold text-gray-900 absolute left-1/2 -translate-x-1/2">{userData.firstName}</h1>
         <div className="relative pr-4">
           <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
@@ -106,7 +109,10 @@ export default function WorkerFeedPage() {
             <span className="text-sm font-medium text-gray-900">Messages</span>
           </button>
 
-          <button className="flex-1 flex flex-col items-center gap-2 min-w-0">
+          <button 
+            onClick={() => router.push('/schedule')}
+            className="flex-1 flex flex-col items-center gap-2 min-w-0"
+          >
             <div className="w-full h-[54px] rounded-2xl bg-[#FCE9E6] flex items-center justify-center">
               <Calendar className="w-7 h-7 text-[#E89B8C]" />
             </div>

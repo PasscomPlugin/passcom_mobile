@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { ChevronLeft, ChevronRight, ChevronDown, AlertTriangle, Search, SlidersHorizontal, Bell, Clock } from "lucide-react"
+import { ChevronLeft, ChevronRight, ChevronDown, AlertTriangle, Search, SlidersHorizontal, Bell } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
@@ -624,18 +624,6 @@ export default function TasksPage() {
 
             {/* Right side icons - default state */}
             <div className="flex items-center gap-1 shrink-0">
-              {/* Clock Status Toggle - for testing billable tasks */}
-              <button 
-                onClick={() => setIsClockedIn(!isClockedIn)}
-                className={`h-auto p-3 rounded-full flex items-center justify-center transition-colors ${
-                  isClockedIn 
-                    ? 'bg-emerald-100 hover:bg-emerald-200' 
-                    : 'bg-amber-100 hover:bg-amber-200'
-                }`}
-                title={isClockedIn ? 'Clocked In (Click to Clock Out)' : 'Off the Clock (Click to Clock In)'}
-              >
-                <Clock size={24} className={isClockedIn ? 'text-emerald-600' : 'text-amber-600'} />
-              </button>
               <button 
                 onClick={() => setIsSearchOpen(true)}
                 className="h-auto p-3 bg-gray-100 rounded-full hover:bg-gray-200 flex items-center justify-center"

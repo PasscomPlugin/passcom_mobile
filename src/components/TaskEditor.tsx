@@ -70,6 +70,7 @@ export function TaskEditor({ isVisible, onClose, onSave, onDelete, onComplete, i
   const [requirePhoto, setRequirePhoto] = useState(false)
   const [attachments, setAttachments] = useState<File[]>([])
   const [attachmentUrls, setAttachmentUrls] = useState<string[]>([])
+  const [originalAttachmentUrls, setOriginalAttachmentUrls] = useState<string[]>([]) // Preserve originals for re-editing
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [selectedLocation, setSelectedLocation] = useState<string>("")
   const [checklist, setChecklist] = useState<ChecklistItem[]>([])
@@ -194,29 +195,39 @@ export function TaskEditor({ isVisible, onClose, onSave, onDelete, onComplete, i
       // Create URLs for preview
       const newUrls = newFiles.map(file => URL.createObjectURL(file))
       setAttachmentUrls(prev => [...prev, ...newUrls])
+      // Store originals separately
+      setOriginalAttachmentUrls(prev => [...prev, ...newUrls])
     }
     setIsAttachMenuOpen(false)
   }
 
   const handleRemoveAttachment = (index: number) => {
-    // Revoke the URL to free memory
+    // Revoke URLs to free memory
     if (attachmentUrls[index]) {
       URL.revokeObjectURL(attachmentUrls[index])
     }
+    // Also revoke original if different
+    if (originalAttachmentUrls[index] && originalAttachmentUrls[index] !== attachmentUrls[index]) {
+      URL.revokeObjectURL(originalAttachmentUrls[index])
+    }
     setAttachments(prev => prev.filter((_, i) => i !== index))
     setAttachmentUrls(prev => prev.filter((_, i) => i !== index))
+    setOriginalAttachmentUrls(prev => prev.filter((_, i) => i !== index))
   }
 
   const handleCropComplete = (croppedImageUrl: string) => {
     if (mediaInEditor) {
-      // Revoke old URL
-      URL.revokeObjectURL(attachmentUrls[mediaInEditor.index])
-      // Update with new cropped image URL
+      // Revoke old cropped URL (if different from original)
+      if (attachmentUrls[mediaInEditor.index] !== originalAttachmentUrls[mediaInEditor.index]) {
+        URL.revokeObjectURL(attachmentUrls[mediaInEditor.index])
+      }
+      // Update display URL with new cropped version
       setAttachmentUrls(prev => {
         const newUrls = [...prev]
         newUrls[mediaInEditor.index] = croppedImageUrl
         return newUrls
       })
+      // Original URL remains unchanged in originalAttachmentUrls
       setMediaInEditor(null)
     }
   }
@@ -370,7 +381,7 @@ export function TaskEditor({ isVisible, onClose, onSave, onDelete, onComplete, i
                     {isImage && (
                       <div
                         className="w-full aspect-[4/3] rounded-lg border border-gray-200 cursor-pointer bg-gray-50 overflow-hidden relative"
-                        onClick={() => setMediaInEditor({ url, index })}
+                        onClick={() => setMediaInEditor({ url: originalAttachmentUrls[index] || url, index })}
                       >
                         <img
                           src={url}
@@ -517,23 +528,60 @@ export function TaskEditor({ isVisible, onClose, onSave, onDelete, onComplete, i
         <div className="flex items-center justify-between h-[50px] border-b">
           <span className="text-lg font-normal">Start time</span>
           <div className="flex items-center gap-2">
-            <span className="text-blue-500 text-base">
-              {startDateTime ? new Date(startDateTime).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Select'}
-            </span>
+            <Popover open={isStartDateOpen} onOpenChange={setIsStartDateOpen}>
+              <PopoverTrigger asChild>
+                <button 
+                  type="button"
+                  className="text-blue-500 text-base hover:text-blue-600"
+                >
+                  {startDateTime ? new Date(startDateTime).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Select'}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="single"
+                  selected={startDateTime ? new Date(startDateTime) : undefined}
+                  onSelect={(date) => {
+                    if (date) {
+                      const currentTime = startDateTime ? startDateTime.split('T')[1] || '00:00' : '00:00'
+                      const dateStr = date.toISOString().split('T')[0]
+                      setStartDateTime(`${dateStr}T${currentTime}`)
+                      setIsStartDateOpen(false)
+                    }
+                  }}
+                  initialFocus
+                  className="[--cell-size:3rem]"
+                />
+              </PopoverContent>
+            </Popover>
             {startDateTime && (
               <>
-                <span className="text-blue-500 text-base">
+                <button
+                  type="button"
+                  onClick={() => startTimeInputRef.current?.showPicker()}
+                  className="text-blue-500 text-base hover:text-blue-600"
+                >
                   {new Date(startDateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                </span>
+                </button>
                 <button 
                   type="button"
                   className="text-gray-400 hover:text-gray-600"
                   onClick={() => setStartDateTime("")}
                 >
-              <X className="h-5 w-5" />
-            </button>
+                  <X className="h-5 w-5" />
+                </button>
               </>
             )}
+            <input
+              ref={startTimeInputRef}
+              type="time"
+              value={startDateTime ? startDateTime.split('T')[1] || '' : ''}
+              onChange={(e) => {
+                const currentDate = startDateTime ? startDateTime.split('T')[0] : new Date().toISOString().split('T')[0]
+                setStartDateTime(`${currentDate}T${e.target.value}`)
+              }}
+              className="hidden"
+            />
           </div>
         </div>
 
@@ -541,14 +589,42 @@ export function TaskEditor({ isVisible, onClose, onSave, onDelete, onComplete, i
         <div className="flex items-center justify-between h-[50px] border-b">
           <span className="text-lg font-normal">Due time</span>
           <div className="flex items-center gap-2">
-            <span className="text-blue-500 text-base">
-              {dueDateTime ? new Date(dueDateTime).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Select'}
-            </span>
+            <Popover open={isDueDateOpen} onOpenChange={setIsDueDateOpen}>
+              <PopoverTrigger asChild>
+                <button 
+                  type="button"
+                  className="text-blue-500 text-base hover:text-blue-600"
+                >
+                  {dueDateTime ? new Date(dueDateTime).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }) : 'Select'}
+                </button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="end">
+                <Calendar
+                  mode="single"
+                  selected={dueDateTime ? new Date(dueDateTime) : undefined}
+                  onSelect={(date) => {
+                    if (date) {
+                      const currentTime = dueDateTime ? dueDateTime.split('T')[1] || '00:00' : '00:00'
+                      const dateStr = date.toISOString().split('T')[0]
+                      setDueDateTime(`${dateStr}T${currentTime}`)
+                      setIsDueTimeExplicitlySet(true)
+                      setIsDueDateOpen(false)
+                    }
+                  }}
+                  initialFocus
+                  className="[--cell-size:3rem]"
+                />
+              </PopoverContent>
+            </Popover>
             {dueDateTime && (
               <>
-                <span className="text-blue-500 text-base">
+                <button
+                  type="button"
+                  onClick={() => dueTimeInputRef.current?.showPicker()}
+                  className="text-blue-500 text-base hover:text-blue-600"
+                >
                   {new Date(dueDateTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
-                </span>
+                </button>
                 <button 
                   type="button"
                   className="text-gray-400 hover:text-gray-600"
@@ -557,10 +633,21 @@ export function TaskEditor({ isVisible, onClose, onSave, onDelete, onComplete, i
                     setIsDueTimeExplicitlySet(false)
                   }}
                 >
-              <X className="h-5 w-5" />
-            </button>
+                  <X className="h-5 w-5" />
+                </button>
               </>
             )}
+            <input
+              ref={dueTimeInputRef}
+              type="time"
+              value={dueDateTime ? dueDateTime.split('T')[1] || '' : ''}
+              onChange={(e) => {
+                const currentDate = dueDateTime ? dueDateTime.split('T')[0] : new Date().toISOString().split('T')[0]
+                setDueDateTime(`${currentDate}T${e.target.value}`)
+                setIsDueTimeExplicitlySet(true)
+              }}
+              className="hidden"
+            />
           </div>
         </div>
 

@@ -21,7 +21,6 @@ export function MediaCropEditor({
 }: MediaCropEditorProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
-  const [rotation, setRotation] = useState(0)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<{
     x: number
     y: number
@@ -45,7 +44,7 @@ export function MediaCropEditor({
       const croppedImageUrl = await getCroppedImg(
         imageSrc,
         croppedAreaPixels,
-        rotation
+        0 // No rotation
       )
       onCropComplete(croppedImageUrl)
       onClose()
@@ -77,11 +76,10 @@ export function MediaCropEditor({
           image={imageSrc}
           crop={crop}
           zoom={zoom}
-          rotation={rotation}
+          rotation={0}
           aspect={undefined} // Free-form cropping
           onCropChange={setCrop}
           onZoomChange={setZoom}
-          onRotationChange={setRotation}
           onCropComplete={onCropCompleteCallback}
           objectFit="contain"
           style={{
@@ -107,23 +105,6 @@ export function MediaCropEditor({
             step="0.1"
             value={zoom}
             onChange={(e) => setZoom(Number(e.target.value))}
-            className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
-          />
-        </div>
-
-        {/* Rotation Control */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between text-white text-sm">
-            <span>Rotation</span>
-            <span className="text-gray-400">{rotation}°</span>
-          </div>
-          <input
-            type="range"
-            min="0"
-            max="360"
-            step="1"
-            value={rotation}
-            onChange={(e) => setRotation(Number(e.target.value))}
             className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500"
           />
         </div>

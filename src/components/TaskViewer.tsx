@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useRef, useEffect } from "react"
-import { ChevronLeft, MoreVertical, Copy, Edit, Trash2, Clock, AlertCircle, User, Tag, MapPin, CheckCircle, Check, Camera, X, FileText } from "lucide-react"
+import { ChevronLeft, MoreVertical, Copy, Edit, Trash2, Clock, AlertCircle, User, Tag, MapPin, CheckCircle, Check, Camera, X, FileText, Image } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { DUMMY_USERS } from "@/data/dummyTasks"
 import { AVAILABLE_TAGS } from "@/data/tags"
+import { MediaCropEditor } from "@/components/MediaCropEditor"
 
 // Helper function to format date
 function formatTaskDate(dateString: string | Date): string {
@@ -65,7 +66,9 @@ export function TaskViewer({ task, onClose, onEdit, onCopy, onDelete, onComplete
   const [showReminderSheet, setShowReminderSheet] = useState(false)
   const [checklist, setChecklist] = useState<ChecklistItem[]>(task.checklist || [])
   const [proofPhoto, setProofPhoto] = useState<string | null>(task.proofPhoto || null)
+  const [originalProofPhoto, setOriginalProofPhoto] = useState<string | null>(task.proofPhoto || null) // Preserve original
   const [isProofMenuOpen, setIsProofMenuOpen] = useState(false)
+  const [mediaInEditor, setMediaInEditor] = useState<string | null>(null)
   const [isActionsMenuOpen, setIsActionsMenuOpen] = useState(false)
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [isOvertime, setIsOvertime] = useState(false)
@@ -145,9 +148,21 @@ export function TaskViewer({ task, onClose, onEdit, onCopy, onDelete, onComplete
       const file = e.target.files[0]
       const photoUrl = URL.createObjectURL(file)
       setProofPhoto(photoUrl)
+      setOriginalProofPhoto(photoUrl) // Store original for re-editing
       setIsProofMenuOpen(false)
       // TODO: In production, upload to server and get permanent URL
     }
+  }
+
+  const handleCropComplete = (croppedImageUrl: string) => {
+    // Revoke old cropped URL (if different from original)
+    if (proofPhoto && proofPhoto !== originalProofPhoto) {
+      URL.revokeObjectURL(proofPhoto)
+    }
+    // Update display URL with new cropped version
+    setProofPhoto(croppedImageUrl)
+    // Original URL remains unchanged in originalProofPhoto
+    setMediaInEditor(null)
   }
 
   // Check if photo proof requirement is met
@@ -266,14 +281,11 @@ export function TaskViewer({ task, onClose, onEdit, onCopy, onDelete, onComplete
           <div className={`px-6 py-4 border-b ${isOvertime ? 'bg-red-50' : 'bg-emerald-50'}`}>
             <div className="flex items-center justify-between mb-2">
               <span className={`font-semibold ${isOvertime ? 'text-red-700' : 'text-emerald-700'}`}>
-                💰 Billable Session Active
+                You are being paid now.
               </span>
               <div className="text-right">
                 <div className={`text-lg font-bold ${isOvertime ? 'text-red-700' : 'text-emerald-700'}`}>
                   {formatTimer(elapsedSeconds)} / {task.billableDurationMinutes?.toString().padStart(2, '0')}:00
-                </div>
-                <div className="text-xs text-gray-600">
-                  ${task.billableRate?.toFixed(2)} bounty
                 </div>
               </div>
             </div>
@@ -372,6 +384,62 @@ export function TaskViewer({ task, onClose, onEdit, onCopy, onDelete, onComplete
               </div>
             )}
 
+            {/* Photo of Finished Task */}
+            {task.requirePhoto && (
+              <>
+                <div className="flex items-center gap-3 py-4 border-b">
+                  <Camera className="h-5 w-5 text-blue-400" />
+                  <span className="font-bold text-gray-900 flex-1">Photo of finished task</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsProofMenuOpen(true)}
+                    className="text-blue-500 hover:text-blue-600 text-base"
+                  >
+                    Take Photo
+                  </button>
+                </div>
+
+                {/* Photo Display - if photo exists */}
+                {proofPhoto && (
+                  <div className="py-4 border-b">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="relative group">
+                        <div
+                          className="w-full aspect-[4/3] rounded-lg border border-gray-200 cursor-pointer bg-gray-50 overflow-hidden relative"
+                          onClick={() => setMediaInEditor(originalProofPhoto)}
+                        >
+                          <img
+                            src={proofPhoto}
+                            alt="Proof of completion"
+                            className="w-full h-full object-cover"
+                          />
+                          {/* Remove button */}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              // Revoke URLs to free memory
+                              if (proofPhoto) {
+                                URL.revokeObjectURL(proofPhoto)
+                              }
+                              if (originalProofPhoto && originalProofPhoto !== proofPhoto) {
+                                URL.revokeObjectURL(originalProofPhoto)
+                              }
+                              setProofPhoto(null)
+                              setOriginalProofPhoto(null)
+                            }}
+                            className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
             {/* Location */}
             {task.location && (
               <div className="flex items-center gap-3 py-4 border-b">
@@ -418,98 +486,56 @@ export function TaskViewer({ task, onClose, onEdit, onCopy, onDelete, onComplete
             )}
           </div>
 
-          {/* Proof of Completion Section */}
-          {task.requirePhoto && (
-            <div className="mt-6 mb-4 px-6 py-4 bg-amber-50 border border-amber-200 rounded-lg">
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Camera className="h-5 w-5 text-amber-600" />
-                    <span className="font-bold text-gray-900">Proof of Completion</span>
-                    <span className="text-xs px-2 py-0.5 bg-amber-200 text-amber-800 rounded-full font-medium">
-                      Required
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600">Upload a photo to complete this task</p>
-                </div>
-
-                {proofPhoto ? (
-                  <div className="relative">
-                    <img
-                      src={proofPhoto}
-                      alt="Proof of completion"
-                      className="h-24 w-24 object-cover rounded-lg border-2 border-amber-300"
-                    />
-                    <button
-                      onClick={() => setProofPhoto(null)}
-                      className="absolute -top-2 -right-2 bg-red-500 hover:bg-red-600 text-white rounded-full p-1"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="relative">
-                    <button
-                      onClick={() => setIsProofMenuOpen(!isProofMenuOpen)}
-                      className="px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium text-sm flex items-center gap-2"
-                    >
-                      <Camera className="h-4 w-4" />
-                      Take Photo
-                    </button>
-
-                    {/* Photo Upload Menu */}
-                    {isProofMenuOpen && (
-                      <>
-                        <div 
-                          className="fixed inset-0 z-10" 
-                          onClick={() => setIsProofMenuOpen(false)}
-                        />
-                        <div className="absolute right-0 top-12 z-20 bg-white rounded-lg shadow-xl border border-gray-200 py-2 w-48">
-                          <button
-                            onClick={() => {
-                              cameraInputRef.current?.click()
-                              setIsProofMenuOpen(false)
-                            }}
-                            className="w-full px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-left"
-                          >
-                            <Camera className="h-5 w-5 text-blue-500" />
-                            <span className="text-base">Camera</span>
-                          </button>
-                          <button
-                            onClick={() => {
-                              fileInputRef.current?.click()
-                              setIsProofMenuOpen(false)
-                            }}
-                            className="w-full px-4 py-3 hover:bg-gray-50 flex items-center gap-3 text-left"
-                          >
-                            <FileText className="h-5 w-5 text-blue-500" />
-                            <span className="text-base">Choose File</span>
-                          </button>
-                        </div>
-                      </>
-                    )}
-
-                    {/* Hidden file inputs */}
-                    <input
-                      ref={cameraInputRef}
-                      type="file"
-                      accept="image/*"
-                      capture="environment"
-                      onChange={handleProofPhotoSelect}
-                      className="hidden"
-                    />
-                    <input
-                      ref={fileInputRef}
-                      type="file"
-                      accept="image/*"
-                      onChange={handleProofPhotoSelect}
-                      className="hidden"
-                    />
-                  </div>
-                )}
+          {/* Photo Upload Menu (Hidden, triggered from main list) */}
+          {isProofMenuOpen && (
+            <>
+              <div 
+                className="fixed inset-0 z-10" 
+                onClick={() => setIsProofMenuOpen(false)}
+              />
+              <div className="fixed top-[120px] right-4 bg-white border rounded-lg shadow-lg py-2 w-48 z-20">
+                <button
+                  type="button"
+                  onClick={() => {
+                    cameraInputRef.current?.click()
+                    setIsProofMenuOpen(false)
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-left"
+                >
+                  <Camera className="h-5 w-5 text-gray-700" />
+                  <span className="text-base">Camera</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    fileInputRef.current?.click()
+                    setIsProofMenuOpen(false)
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 hover:bg-gray-50 text-left"
+                >
+                  <Image className="h-5 w-5 text-gray-700" />
+                  <span className="text-base">Saved Images</span>
+                </button>
               </div>
-            </div>
+            </>
           )}
+
+          {/* Hidden file inputs */}
+          <input
+            ref={cameraInputRef}
+            type="file"
+            accept="image/*"
+            capture="environment"
+            onChange={handleProofPhotoSelect}
+            className="hidden"
+          />
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleProofPhotoSelect}
+            className="hidden"
+          />
         </div>
 
         {/* Footer */}
@@ -587,6 +613,16 @@ export function TaskViewer({ task, onClose, onEdit, onCopy, onDelete, onComplete
           )}
         </div>
       </div>
+
+      {/* Media Crop Editor */}
+      {mediaInEditor && (
+        <MediaCropEditor
+          isOpen={!!mediaInEditor}
+          onClose={() => setMediaInEditor(null)}
+          imageSrc={mediaInEditor}
+          onCropComplete={handleCropComplete}
+        />
+      )}
 
       {/* Reminder Sheet Modal */}
       {showReminderSheet && <ReminderSheet onClose={() => setShowReminderSheet(false)} />}

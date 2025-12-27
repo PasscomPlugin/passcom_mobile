@@ -1,8 +1,9 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { ChevronDown, Check } from "lucide-react"
+import { Check } from "lucide-react"
 import { TaskCard } from "@/components/TaskCard"
 
 interface Task {
@@ -38,10 +39,9 @@ export default function OverdueTasksModal({
   onMarkDone,
   currentUserId = "current-user"
 }: OverdueTasksModalProps) {
-  const [selectedFilter, setSelectedFilter] = useState("My tasks")
-  const [showFilterDropdown, setShowFilterDropdown] = useState(false)
+  const router = useRouter()
 
-  // Filter overdue tasks
+  // Filter overdue tasks (only show current user's tasks)
   const overdueTasks = useMemo(() => {
     const now = new Date()
     return tasks.filter(task => {
@@ -51,16 +51,10 @@ export default function OverdueTasksModal({
       
       if (!isDue || isDone) return false
 
-      // Apply selected filter
-      if (selectedFilter === "My tasks") {
-        return task.assigneeId === currentUserId
-      } else if (selectedFilter === "Tasks I created") {
-        return task.creatorId === currentUserId
-      }
-      // "All tasks"
-      return true
+      // Only show current user's tasks
+      return task.assigneeId === currentUserId
     })
-  }, [tasks, selectedFilter, currentUserId])
+  }, [tasks, currentUserId])
 
   // Group tasks by due date
   const taskGroups = useMemo(() => {
@@ -119,53 +113,13 @@ export default function OverdueTasksModal({
         {/* Header */}
         <div className="px-6 py-5 border-b flex items-center justify-between">
           <h1 className="text-2xl font-bold">Overdue tasks</h1>
-          {/* Filter Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => setShowFilterDropdown(!showFilterDropdown)}
-              className="flex items-center gap-1 text-base text-gray-700 hover:text-gray-900"
-            >
-              {selectedFilter}
-              <ChevronDown className="h-4 w-4" />
-            </button>
-            {showFilterDropdown && (
-              <>
-                <div 
-                  className="fixed inset-0 z-10" 
-                  onClick={() => setShowFilterDropdown(false)}
-                />
-                <div className="absolute right-0 top-full mt-2 bg-white border rounded-lg shadow-lg py-2 w-48 z-20">
-                  <button
-                    onClick={() => {
-                      setSelectedFilter("My tasks")
-                      setShowFilterDropdown(false)
-                    }}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100"
-                  >
-                    My tasks
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSelectedFilter("All tasks")
-                      setShowFilterDropdown(false)
-                    }}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100"
-                  >
-                    All tasks
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSelectedFilter("Tasks I created")
-                      setShowFilterDropdown(false)
-                    }}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100"
-                  >
-                    Tasks I created
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
+          {/* Open Notifications Link */}
+          <button
+            onClick={() => router.push('/notifications')}
+            className="text-base text-blue-600 hover:text-blue-700 font-medium"
+          >
+            open task notifications
+          </button>
         </div>
 
         {/* Scrollable Task List */}

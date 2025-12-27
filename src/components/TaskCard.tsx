@@ -54,14 +54,16 @@ export function TaskCard({ title, startDate, dueDate, status, onClick, isBillabl
       </div>
 
       {/* Billable Badge */}
-      {isBillable && billableRate && (
-        <div className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-xs font-semibold shrink-0">
-          💰 ${billableRate.toFixed(2)}
+      {isBillable && (
+        <div 
+          className="px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-bold shrink-0 pointer-events-none"
+        >
+          $
         </div>
       )}
 
       {/* Right: Chevron */}
-      <ChevronRight className="h-5 w-5 text-gray-400 shrink-0" />
+      <ChevronRight className="h-5 w-5 text-gray-400 shrink-0 pointer-events-none" />
     </div>
   )
 }
