@@ -1,9 +1,10 @@
 "use client"
 
-import { Suspense, use } from "react"
+import { Suspense, use, useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Calendar, Clock, Briefcase, Users, MessageCircle, MoreVertical, Clock4 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import FindReplacementSheet from "@/components/FindReplacementSheet"
 
 // Mock function to get shift details - will be replaced with real data later
 function getShiftDetails(id: string) {
@@ -28,10 +29,39 @@ function getShiftDetails(id: string) {
   }
 }
 
+// Mock function to get available teammates - will be replaced with real data later
+function getAvailableTeammates(shiftId: string) {
+  // Mock data - in production this would fetch from API
+  return [
+    {
+      id: "u-2",
+      name: "Robert Zimmerman",
+      initials: "RZ",
+      avatarColor: "#F59E0B", // Orange
+    },
+    {
+      id: "u-4",
+      name: "Sam Thompson",
+      initials: "ST",
+      avatarColor: "#10B981", // Green
+    },
+    {
+      id: "u-5",
+      name: "Liz Carter",
+      initials: "LC",
+      avatarColor: "#8B5CF6", // Purple
+    },
+  ]
+}
+
 function ShiftDetailsContent({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter()
   const { id } = use(params)
   const shift = getShiftDetails(id)
+  const availableTeammates = getAvailableTeammates(id)
+
+  // State for find replacement sheet
+  const [isFindReplacementOpen, setIsFindReplacementOpen] = useState(false)
 
   // Status indicator styling
   const statusConfig = {
@@ -50,6 +80,17 @@ function ShiftDetailsContent({ params }: { params: Promise<{ id: string }> }) {
     day: 'numeric', 
     year: 'numeric' 
   })
+
+  // Handle replacement request
+  const handleSendReplacementRequest = (selectedUserIds: string[]) => {
+    console.log('=== REPLACEMENT REQUEST ===')
+    console.log('Shift ID:', shift.id)
+    console.log('Selected Users:', selectedUserIds)
+    console.log('Selected Users Details:', availableTeammates.filter(u => selectedUserIds.includes(u.id)))
+    
+    // TODO: Send to backend API
+    alert(`✅ Replacement request sent!\n\nRequested ${selectedUserIds.length} teammate(s) to cover this shift.\nPending admin approval.`)
+  }
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
@@ -124,7 +165,10 @@ function ShiftDetailsContent({ params }: { params: Promise<{ id: string }> }) {
               <span className="text-base">{shift.assignedUserName}</span>
             </div>
           </div>
-          <button className="text-blue-500 text-sm hover:underline flex items-center gap-1">
+          <button 
+            className="text-blue-500 text-sm hover:underline flex items-center gap-1"
+            onClick={() => setIsFindReplacementOpen(true)}
+          >
             <Users className="h-4 w-4" />
             Find replacement
           </button>
@@ -186,6 +230,15 @@ function ShiftDetailsContent({ params }: { params: Promise<{ id: string }> }) {
           Open Timeclock
         </Button>
       </div>
+
+      {/* Find Replacement Sheet */}
+      <FindReplacementSheet
+        isOpen={isFindReplacementOpen}
+        onClose={() => setIsFindReplacementOpen(false)}
+        onSendRequest={handleSendReplacementRequest}
+        currentShiftId={shift.id}
+        availableUsers={availableTeammates}
+      />
     </div>
   )
 }
