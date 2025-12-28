@@ -476,10 +476,11 @@ function SchedulePageContent() {
                   <Bell className="h-[30px] w-[30px]" strokeWidth={2} />
                 </button>
 
-                {/* Calendar Icon */}
+                {/* Calendar Icon - Set Availability */}
                 <button 
                   className={headerBtnClass}
-                  onClick={() => console.log('Calendar clicked')}
+                  onClick={() => router.push('/availability')}
+                  title="Set My Availability"
                 >
                   <Calendar className="h-[30px] w-[30px]" strokeWidth={2} />
                 </button>
@@ -668,7 +669,7 @@ function SchedulePageContent() {
                           <ShiftCard 
                             key={shift.id} 
                             shift={shift}
-                            onClick={() => console.log('View shift:', shift.id)}
+                            onClick={() => router.push(`/schedule/shift/${shift.id}`)}
                           />
                         ))}
                       </div>

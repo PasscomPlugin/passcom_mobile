@@ -34,6 +34,14 @@ export default function WorkerFeedPage() {
 
   const [announcements] = useState([
     {
+      id: 0,
+      title: "📅 Set Your Availability",
+      message: "Let us know when you prefer to work and when you're available",
+      time: "Tap to set",
+      link: "/availability",
+      isAction: true,
+    },
+    {
       id: 1,
       title: "Team meeting scheduled",
       message: "Monthly team meeting is scheduled for Friday at 2 PM",
@@ -157,16 +165,37 @@ export default function WorkerFeedPage() {
             </button>
           </div>
           <div className="px-4 pb-4 space-y-3">
-            {announcements.map((announcement) => (
-              <div key={announcement.id} className="flex gap-3">
-                <div className="w-2 h-2 rounded-full bg-[#5A9FD4] mt-2 flex-shrink-0" />
-                <div className="flex-1">
-                  <h4 className="text-sm font-semibold text-gray-900">{announcement.title}</h4>
-                  <p className="text-sm text-gray-600 mt-1">{announcement.message}</p>
-                  <p className="text-xs text-gray-400 mt-1">{announcement.time}</p>
+            {announcements.map((announcement) => {
+              const isActionCard = 'isAction' in announcement && announcement.isAction
+              
+              if (isActionCard && 'link' in announcement) {
+                return (
+                  <button
+                    key={announcement.id}
+                    onClick={() => router.push(announcement.link)}
+                    className="flex gap-3 w-full text-left bg-blue-50 rounded-lg p-3 hover:bg-blue-100 transition-colors"
+                  >
+                    <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0" />
+                    <div className="flex-1">
+                      <h4 className="text-sm font-semibold text-blue-900">{announcement.title}</h4>
+                      <p className="text-sm text-blue-700 mt-1">{announcement.message}</p>
+                      <p className="text-xs text-blue-500 mt-1 font-medium">{announcement.time} →</p>
+                    </div>
+                  </button>
+                )
+              }
+              
+              return (
+                <div key={announcement.id} className="flex gap-3">
+                  <div className="w-2 h-2 rounded-full bg-[#5A9FD4] mt-2 flex-shrink-0" />
+                  <div className="flex-1">
+                    <h4 className="text-sm font-semibold text-gray-900">{announcement.title}</h4>
+                    <p className="text-sm text-gray-600 mt-1">{announcement.message}</p>
+                    <p className="text-xs text-gray-400 mt-1">{announcement.time}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       </div>
