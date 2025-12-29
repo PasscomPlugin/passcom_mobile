@@ -182,8 +182,29 @@ export default function NotificationSettingsPage() {
                     checked={categoryToggles[category.id as keyof typeof categoryToggles]}
                     onCheckedChange={() => toggleCategory(category.id)}
                   />
-                  {/* Visual Chevron for affordance */}
-                  <ChevronRight className="h-5 w-5 text-gray-300 ml-1" strokeWidth={2} />
+                  {/* Clickable Chevron for drill-down */}
+                  <button
+                    onClick={() => {
+                      if (category.id === "timeClock") {
+                        router.push("/notification-settings/time-clock")
+                      }
+                      if (category.id === "schedule") {
+                        router.push("/notification-settings/schedule")
+                      }
+                      if (category.id === "quickTasks") {
+                        router.push("/notification-settings/tasks")
+                      }
+                      if (category.id === "celebrations") {
+                        router.push("/notification-settings/celebrations")
+                      }
+                      if (category.id === "timeOff") {
+                        router.push("/notification-settings/time-off")
+                      }
+                    }}
+                    className="h-8 w-8 rounded-full flex items-center justify-center hover:bg-gray-100 transition-colors"
+                  >
+                    <ChevronRight className="h-5 w-5 text-gray-300" strokeWidth={2} />
+                  </button>
                 </div>
               )
             })}
