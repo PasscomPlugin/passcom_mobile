@@ -17,12 +17,12 @@ interface ViewTasksSheetProps {
   onOpenTagFilter: () => void
   onOpenCreatorFilter: () => void
   onOpenAssigneeFilter: () => void
-  activeFilters: ActiveFilter[]
-  previewCount: number | null
-  onClearAll: () => void
-  onApplyFilters: () => void
-  calculateMatchingTasks: (filters: ActiveFilter[]) => any[]
-  allDays: any[]
+  activeFilters?: ActiveFilter[]
+  previewCount?: number | null
+  onClearAll?: () => void
+  onApplyFilters?: () => void
+  calculateMatchingTasks?: (filters: ActiveFilter[]) => any[]
+  allDays?: any[]
 }
 
 export default function ViewTasksSheet({
@@ -33,12 +33,11 @@ export default function ViewTasksSheet({
   onOpenTagFilter,
   onOpenCreatorFilter,
   onOpenAssigneeFilter,
-  activeFilters,
-  previewCount,
-  onClearAll,
-  onApplyFilters,
-  calculateMatchingTasks,
-  allDays,
+  activeFilters = [],
+  previewCount = null,
+  onClearAll = () => {},
+  onApplyFilters = () => {},
+  calculateMatchingTasks = () => [],
 }: ViewTasksSheetProps) {
   if (!isVisible) return null
 

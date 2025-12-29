@@ -879,10 +879,6 @@ export default function TasksPage() {
       <ViewTasksSheet
         isVisible={isViewTasksSheetVisible}
         onClose={() => setIsViewTasksSheetVisible(false)}
-        currentViewMode={currentViewMode}
-        onChangeViewMode={setCurrentViewMode}
-        activeSortCategory={selectedSortCategory}
-        onSelectSortCategory={setSelectedSortCategory}
         onOpenDateSort={handleOpenDateSort}
         onOpenStatusFilter={handleOpenStatusFilter}
         onOpenTagFilter={handleOpenTagFilter}

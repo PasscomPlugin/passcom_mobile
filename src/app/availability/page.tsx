@@ -4,7 +4,7 @@ import { Suspense, useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, Calendar } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import type { WeeklyAvailability } from '@/types/availability'
+import type { WeeklyAvailability, SlotStatus } from '@/types/availability'
 import { createEmptySchedule, SLOT_STATUS, DAYS_OF_WEEK } from '@/types/availability'
 
 const CELL_HEIGHT = 22
@@ -68,7 +68,7 @@ function AvailabilityContent() {
   const autoScrollIntervalRef = useRef<any>(null)
 
   // Update a specific slot
-  const updateSlot = (dayIndex: number, slotIndex: number, newStatus: number) => {
+  const updateSlot = (dayIndex: number, slotIndex: number, newStatus: SlotStatus) => {
     const newAvailability = [...availability]
     newAvailability[dayIndex].slots[slotIndex].status = newStatus
     setAvailability(newAvailability)
