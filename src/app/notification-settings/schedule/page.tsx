@@ -33,6 +33,12 @@ export default function ScheduleSettingsPage() {
           <ChevronLeft className="h-6 w-6" />
         </Button>
         <h1 className="text-lg font-semibold flex-1">Schedule Settings</h1>
+        <button
+          onClick={() => router.push('/notification-settings')}
+          className="text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
+        >
+          set notifications
+        </button>
       </div>
 
       <div className="flex-1 overflow-auto py-6">

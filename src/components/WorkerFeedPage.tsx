@@ -77,11 +77,14 @@ export default function WorkerFeedPage() {
           <div className="text-base font-bold text-green-700 leading-none mt-1">{((currentPay % 1) * 100).toFixed(0).padStart(2, '0')}</div>
         </button>
         <h1 className="text-xl font-semibold text-gray-900 absolute left-1/2 -translate-x-1/2">{userData.firstName}</h1>
-        <div className="relative pr-4">
+        <button 
+          onClick={() => router.push('/profile')}
+          className="relative pr-4 hover:opacity-80 transition-opacity"
+        >
           <div className="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center">
             <User className="w-5 h-5 text-gray-600" />
           </div>
-        </div>
+        </button>
       </div>
 
       <div className="h-[0.5px] bg-gray-400" />
@@ -113,7 +116,10 @@ export default function WorkerFeedPage() {
             <span className="text-sm font-medium text-gray-900">Clock</span>
           </button>
 
-          <button className="flex-1 flex flex-col items-center gap-2 min-w-0">
+          <button 
+            onClick={() => router.push('/chat')}
+            className="flex-1 flex flex-col items-center gap-2 min-w-0"
+          >
             <div className="w-full h-[54px] rounded-2xl bg-[#F0F4D4] flex items-center justify-center">
               <MessageSquare className="w-7 h-7 text-[#B4BE6C]" />
             </div>
