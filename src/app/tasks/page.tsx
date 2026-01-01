@@ -35,7 +35,7 @@ const isSameDay = (date1: Date, date2: Date) => {
 
 function TasksPageContent() {
   const router = useRouter()
-  const { tasks: globalTasks, toggleTask } = useGlobalApp()
+  const { tasks: globalTasks, toggleTask, addTask, updateTask } = useGlobalApp()
   
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const miniCalendarRef = useRef<HTMLDivElement>(null)
@@ -795,7 +795,23 @@ function TasksPageContent() {
 
   // Task handlers
   const handleSaveTask = (task: any) => {
-    console.log('Task saved:', task)
+    console.log('💾 Task saved:', task)
+    
+    if (task.id && editingTask) {
+      // Updating existing task
+      console.log('📝 Updating existing task:', task.id)
+      updateTask(task.id, task)
+    } else {
+      // Creating new task - generate a unique ID
+      const newTask = {
+        ...task,
+        id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        dueTime: task.dueTime || new Date().toISOString()
+      }
+      console.log('➕ Adding new task:', newTask)
+      addTask(newTask)
+    }
+    
     setIsTaskEditorOpen(false)
     setEditingTask(null)
   }
