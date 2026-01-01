@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useRef } from "react"
-import { ChevronLeft, Paperclip, X, Check, Camera, FileText, Image, Play, Clock, ChevronRight } from "lucide-react"
+import { ArrowLeft, Paperclip, X, Check, Camera, FileText, Image, Play, Clock, ChevronRight } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
@@ -321,23 +321,17 @@ export function TaskEditor({ isVisible, onClose, onSave, onDelete, onComplete, i
   return (
     <div className="fixed inset-0 bg-white flex flex-col z-50">
       {/* Header */}
-      <div className="sticky top-0 bg-white border-b px-4 py-4 flex items-center gap-4 z-10">
+      <div className="sticky top-0 bg-white border-b px-4 py-2 flex items-center gap-2 z-10 h-14">
         <button 
           type="button"
           onClick={onClose}
-          className="h-auto p-3 shrink-0 flex items-center justify-center -ml-3"
+          className="h-12 w-12 -ml-2 rounded-full flex items-center justify-center hover:bg-blue-50 text-blue-600 transition-colors focus:outline-none"
         >
-          <ChevronLeft className="h-6 w-6 text-gray-900" strokeWidth={2.5} />
+          <ArrowLeft className="h-[30px] w-[30px]" strokeWidth={2.5} />
         </button>
-        <h1 className="text-lg font-semibold flex-1 text-center">
+        <h1 className="text-xl font-bold text-gray-900 flex-1">
           {initialTask ? "Edit task" : "Create new task"}
         </h1>
-        <button 
-          onClick={onClose}
-          className="h-auto p-3 shrink-0 flex items-center justify-center -mr-3"
-        >
-          <X className="h-6 w-6 text-gray-600" />
-        </button>
       </div>
 
       {/* Scrollable Content */}
