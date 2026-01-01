@@ -98,6 +98,17 @@ function AvailabilityHubContent() {
   const [startDate, setStartDate] = useState("")
   const [endDate, setEndDate] = useState("")
   const [reason, setReason] = useState("")
+  
+  // Time Off Requests Storage
+  const [timeOffRequests, setTimeOffRequests] = useState<Array<{
+    id: string
+    type: string
+    startDate: string
+    endDate: string
+    reason: string
+    status: 'pending' | 'approved' | 'denied'
+  }>>([])
+
 
   // ===== PATTERN TAB FUNCTIONS =====
   
@@ -418,11 +429,20 @@ function AvailabilityHubContent() {
       return { type: 'shift', label: shift.label, color: '#3b82f6', textColor: 'white' }
     }
     
-    // Check for time off
-    const timeOffs = getMockTimeOff()
-    const timeOff = timeOffs.find(t => t.dayIndex === dayIndex && slotIndex >= t.startSlot && slotIndex <= t.endSlot)
-    if (timeOff) {
-      return { type: 'timeoff', label: timeOff.label, color: '#ef4444', textColor: 'white' }
+    // Check for time off requests
+    // Get the current cell's date and time
+    const cellDate = new Date(currentWeekStart)
+    cellDate.setDate(cellDate.getDate() + dayIndex)
+    const cellDateStr = cellDate.toISOString().split('T')[0] // YYYY-MM-DD
+    
+    // Check if any time off request covers this cell
+    const timeOffRequest = timeOffRequests.find(request => {
+      // Check if cell date is within request date range
+      return cellDateStr >= request.startDate && cellDateStr <= request.endDate
+    })
+    
+    if (timeOffRequest) {
+      return { type: 'timeoff', label: timeOffRequest.type, color: '#fde047', textColor: '#000' } // Yellow
     }
     
     // Check for calendar exceptions
@@ -527,7 +547,21 @@ function AvailabilityHubContent() {
       alert("Please fill in all required fields")
       return
     }
-    console.log({ selectedType, startDate, endDate, reason })
+    
+    // Create new time off request
+    const newRequest = {
+      id: `timeoff-${Date.now()}`,
+      type: selectedType,
+      startDate,
+      endDate,
+      reason,
+      status: 'pending' as const
+    }
+    
+    // Add to time off requests
+    setTimeOffRequests(prev => [...prev, newRequest])
+    console.log('✅ Time off request saved:', newRequest)
+    
     // Reset and close
     setIsRequestSheetOpen(false)
     setSelectedType(null)
