@@ -392,11 +392,11 @@ function TimeClockContent() {
             <div className="flex justify-center">
               <button
                 onClick={handleClockIn}
-                className="w-64 h-64 rounded-full bg-gradient-to-br from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 shadow-2xl hover:shadow-3xl transition-all duration-300 flex flex-col items-center justify-center gap-4 active:scale-95"
+                className="w-[180px] h-[180px] rounded-full bg-gradient-to-br from-green-400 to-green-600 hover:from-green-500 hover:to-green-700 shadow-2xl hover:shadow-3xl transition-all duration-300 flex flex-col items-center justify-center gap-3 active:scale-95"
               >
-                <Play className="h-16 w-16 text-white" strokeWidth={2.5} />
+                <Play className="h-11 w-11 text-white" strokeWidth={2.5} />
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-white">Clock In</div>
+                  <div className="text-xl font-bold text-white">Clock In</div>
                   <div className="text-sm text-white/80">Tap to start</div>
                 </div>
               </button>
