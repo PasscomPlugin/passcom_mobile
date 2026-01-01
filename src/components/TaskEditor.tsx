@@ -756,7 +756,7 @@ export function TaskEditor({ isVisible, onClose, onSave, onDelete, onComplete, i
                     setIsBountySheetOpen(true)
                   }
                 }}
-                className="h-5 w-5 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
+                className="h-5 w-5 shrink-0 rounded border-gray-300 text-blue-500 focus:ring-blue-500"
               />
               <span className="text-base text-gray-900">Bounty - Allow off-clock, paid completion</span>
             </label>
