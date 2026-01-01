@@ -8,11 +8,11 @@ import { Badge } from "@/components/ui/badge"
 import ViewTasksSheet from "@/components/ViewTasksSheet"
 import OverdueTasksModal from "@/components/OverdueTasksModal"
 import { TaskEditor } from "@/components/TaskEditor"
+import { TaskDetails } from "@/components/TaskDetails"
 import SortStatusSheet from "@/components/SortStatusSheet"
 import TagSelectionSheet from "@/components/TagSelectionSheet"
 import SortUserSheet from "@/components/SortUserSheet"
 import DateRangeModal from "@/components/DateRangeModal"
-import BottomNav from "@/components/BottomNav"
 
 // Helper functions for date manipulation
 const getStartOfWeek = (date: Date) => {
@@ -50,6 +50,8 @@ function TasksPageContent() {
   const [isOverdueModalVisible, setIsOverdueModalVisible] = useState(false)
   const [isTaskEditorOpen, setIsTaskEditorOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<any>(null)
+  const [isTaskDetailsOpen, setIsTaskDetailsOpen] = useState(false)
+  const [viewingTask, setViewingTask] = useState<any>(null)
   const [isMounted, setIsMounted] = useState(false)
   
   // Use useMemo to prevent hydration mismatch (same date on server and client)
@@ -1235,8 +1237,15 @@ function TasksPageContent() {
                             <button 
                               key={task.id}
                               onClick={() => {
-                                setEditingTask(task)
-                                setIsTaskEditorOpen(true)
+                                if (task.creatorId === currentUserId) {
+                                  // User is creator - open full editor
+                                  setEditingTask(task)
+                                  setIsTaskEditorOpen(true)
+                                } else {
+                                  // User is not creator - open details view
+                                  setViewingTask(task)
+                                  setIsTaskDetailsOpen(true)
+                                }
                               }}
                               className={`w-full text-left rounded-xl p-4 border transition-all active:scale-[0.99] ${
                                 task.status === 'done' 
@@ -1513,6 +1522,18 @@ function TasksPageContent() {
         initialTask={editingTask}
       />
 
+      {viewingTask && (
+        <TaskDetails
+          isVisible={isTaskDetailsOpen}
+          onClose={() => {
+            setIsTaskDetailsOpen(false)
+            setViewingTask(null)
+          }}
+          onComplete={handleCompleteTask}
+          task={viewingTask}
+        />
+      )}
+
       <DateRangeModal
         isVisible={isDateRangeVisible}
         onClose={() => {
@@ -1522,8 +1543,6 @@ function TasksPageContent() {
         onApply={handleDateRangeApply}
       />
 
-      {/* Bottom Navigation */}
-      <BottomNav />
     </div>
   )
 }
