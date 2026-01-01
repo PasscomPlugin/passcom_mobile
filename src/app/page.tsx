@@ -45,7 +45,7 @@ function HomeContent() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-white pb-20">
       {/* Header */}
       <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -77,19 +77,19 @@ function HomeContent() {
       {/* Content */}
       <div className="px-4 py-6">
         {/* Section 1: Alerts */}
-        <div className="mb-8">
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Alerts</h2>
-          <div className="space-y-3">
+        <div className="mb-6">
+          <h2 className="text-xl font-bold text-gray-900 mb-3">Alerts</h2>
+          <div className="space-y-4">
             {alerts.map((alert) => (
               <button
                 key={alert.id}
-                className="w-full bg-white rounded-lg p-4 flex gap-3 hover:bg-gray-50 transition-colors text-left"
+                className="w-full flex gap-3 hover:opacity-70 transition-opacity text-left py-1"
               >
-                <div className={`h-2 w-2 rounded-full ${alert.dotColor} mt-2 shrink-0`} />
+                <div className={`h-3 w-3 rounded-full ${alert.dotColor} mt-1 shrink-0`} />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between mb-1">
+                  <div className="flex items-start justify-between gap-2 mb-1">
                     <h3 className="text-base font-semibold text-gray-900">{alert.title}</h3>
-                    <span className="text-xs text-gray-400 shrink-0 ml-2">{alert.time}</span>
+                    <span className="text-sm text-gray-400 shrink-0">{alert.time}</span>
                   </div>
                   <p className="text-sm text-gray-600">{alert.subtext}</p>
                 </div>
@@ -100,20 +100,20 @@ function HomeContent() {
 
         {/* Section 2: Announcements */}
         <div>
-          <h2 className="text-lg font-bold text-gray-900 mb-4">Announcements</h2>
-          <div className="space-y-3">
+          <h2 className="text-xl font-bold text-gray-900 mb-3">Announcements</h2>
+          <div className="space-y-4">
             {announcements.map((announcement) => (
               <button
                 key={announcement.id}
-                className="w-full bg-white rounded-lg p-4 flex gap-3 hover:bg-gray-50 transition-colors text-left"
+                className="w-full flex gap-3 hover:opacity-70 transition-opacity text-left py-1"
               >
-                <div className={`h-2 w-2 rounded-full ${announcement.dotColor} mt-2 shrink-0`} />
+                <div className={`h-3 w-3 rounded-full ${announcement.dotColor} mt-1 shrink-0`} />
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between mb-1">
+                  <div className="flex items-start justify-between gap-2 mb-1">
                     <h3 className="text-base font-semibold text-gray-900">
                       {announcement.title}
                     </h3>
-                    <span className="text-xs text-gray-400 shrink-0 ml-2">
+                    <span className="text-sm text-gray-400 shrink-0">
                       {announcement.time}
                     </span>
                   </div>
