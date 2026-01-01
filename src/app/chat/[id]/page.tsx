@@ -1,7 +1,9 @@
 "use client"
 
 import { Suspense, useState, useEffect, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useParams } from "next/navigation"
+import { useGlobalApp } from "@/context/GlobalContext"
+import type { Message } from "@/context/GlobalContext"
 import {
   ArrowLeft,
   Info,
@@ -20,93 +22,27 @@ import {
   File,
 } from "lucide-react"
 
-// Message Type Definitions
-type BaseMessage = {
-  id: number
-  sender: "me" | "them"
-  time: string
-  senderName?: string
-  senderAvatar?: string
-}
-
-type TextMessage = BaseMessage & {
-  type: "text"
-  text: string
-}
-
-type MediaMessage = BaseMessage & {
-  type: "image" | "video" | "gif"
-  url: string
-  aspectRatio?: number
-}
-
-type FileMessage = BaseMessage & {
-  type: "document"
-  fileName: string
-  fileSize: string
-}
-
-type LocationMessage = BaseMessage & {
-  type: "location"
-  address: string
-  mapImageUrl: string
-}
-
-type ContactMessage = BaseMessage & {
-  type: "contact"
-  name: string
-  phoneNumber: string
-}
-
-type LinkMessage = BaseMessage & {
-  type: "link"
-  url: string
-  title: string
-  previewImageUrl: string
-}
-
-type Message =
-  | TextMessage
-  | MediaMessage
-  | FileMessage
-  | LocationMessage
-  | ContactMessage
-  | LinkMessage
+// Message Type Helpers (for type narrowing)
+type TextMessage = Extract<Message, { type: "text" }>
+type MediaMessage = Extract<Message, { type: "image" | "video" | "gif" }>
+type FileMessage = Extract<Message, { type: "document" }>
+type LocationMessage = Extract<Message, { type: "location" }>
+type ContactMessage = Extract<Message, { type: "contact" }>
+type LinkMessage = Extract<Message, { type: "link" }>
 
 function ChatConversationContent() {
   const router = useRouter()
+  const params = useParams()
+  const currentUserId = params.id as string
+  const { chats, sendMessage } = useGlobalApp()
+  
   const [messageText, setMessageText] = useState("")
   const [isAttachmentSheetOpen, setIsAttachmentSheetOpen] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // Messages state with initial mock data
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: 1,
-      sender: "them",
-      type: "text",
-      senderName: "Sarah",
-      senderAvatar: "SM",
-      text: "Hey Jim, can you come in 30 mins early tomorrow?",
-      time: "2:34 PM",
-    },
-    {
-      id: 2,
-      sender: "me",
-      type: "text",
-      text: "Sure, no problem. Is it busy?",
-      time: "2:35 PM",
-    },
-    {
-      id: 3,
-      sender: "them",
-      type: "text",
-      senderName: "Sarah",
-      senderAvatar: "SM",
-      text: "Yeah, huge rush just hit.",
-      time: "2:36 PM",
-    },
-  ])
+  // Get messages for current user from global state
+  const messages = chats[currentUserId] || []
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -126,7 +62,7 @@ function ChatConversationContent() {
         text: messageText.trim(),
         time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
       }
-      setMessages([...messages, newMessage])
+      sendMessage(currentUserId, newMessage)
       setMessageText("")
     }
   }
@@ -139,17 +75,34 @@ function ChatConversationContent() {
   }
 
   // Attachment handlers
+  // Open file picker
   const handleSendPhoto = () => {
+    fileInputRef.current?.click()
+    setIsAttachmentSheetOpen(false)
+  }
+
+  // Handle file selection
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Create local URL for the selected file
+    const url = URL.createObjectURL(file)
+
+    // Create message with real image
     const newMessage: MediaMessage = {
       id: getNextId(),
       sender: "me",
       type: "image",
-      url: "https://placehold.co/600x400/3b82f6/ffffff/png?text=Photo",
-      aspectRatio: 1.5,
+      url: url,
+      aspectRatio: 1.5, // Default, could calculate from image
       time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
     }
-    setMessages([...messages, newMessage])
-    setIsAttachmentSheetOpen(false)
+    
+    sendMessage(currentUserId, newMessage)
+    
+    // Reset file input
+    event.target.value = ""
   }
 
   const handleSendVideo = () => {
@@ -385,6 +338,15 @@ function ChatConversationContent() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Hidden File Input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileSelect}
+        accept="image/*"
+        className="hidden"
+      />
+      
       {/* Header */}
       <div className="sticky top-0 bg-white border-b px-4 py-2 flex items-center justify-between z-10 h-14">
         <button

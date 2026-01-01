@@ -31,15 +31,70 @@ export interface ShiftState {
   startTime: Date | null
 }
 
+// Chat Message Types
+type BaseMessage = {
+  id: number
+  sender: "me" | "them"
+  time: string
+  senderName?: string
+  senderAvatar?: string
+}
+
+type TextMessage = BaseMessage & {
+  type: "text"
+  text: string
+}
+
+type MediaMessage = BaseMessage & {
+  type: "image" | "video" | "gif"
+  url: string
+  aspectRatio?: number
+}
+
+type FileMessage = BaseMessage & {
+  type: "document"
+  fileName: string
+  fileSize: string
+}
+
+type LocationMessage = BaseMessage & {
+  type: "location"
+  address: string
+  mapImageUrl: string
+}
+
+type ContactMessage = BaseMessage & {
+  type: "contact"
+  name: string
+  phoneNumber: string
+}
+
+type LinkMessage = BaseMessage & {
+  type: "link"
+  url: string
+  title: string
+  previewImageUrl: string
+}
+
+export type Message =
+  | TextMessage
+  | MediaMessage
+  | FileMessage
+  | LocationMessage
+  | ContactMessage
+  | LinkMessage
+
 interface GlobalContextType {
   shiftState: ShiftState
   tasks: Task[]
+  chats: Record<string, Message[]>
   clockIn: () => void
   clockOut: () => void
   toggleTask: (id: string) => void
   addTask: (task: Task) => void
   updateTask: (id: string, updates: Partial<Task>) => void
   deleteTask: (id: string) => void
+  sendMessage: (userId: string, message: Message) => void
 }
 
 // Create Context
@@ -126,6 +181,9 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
   
   const [tasks, setTasks] = useState<Task[]>(generateInitialTasks())
   
+  // Chat messages keyed by user ID
+  const [chats, setChats] = useState<Record<string, Message[]>>({})
+  
   // Clock In
   const clockIn = () => {
     setShiftState({
@@ -175,15 +233,25 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
     setTasks(prev => prev.filter(task => task.id !== id))
   }
   
+  // Send Message
+  const sendMessage = (userId: string, message: Message) => {
+    setChats(prev => ({
+      ...prev,
+      [userId]: [...(prev[userId] || []), message]
+    }))
+  }
+  
   const value: GlobalContextType = {
     shiftState,
     tasks,
+    chats,
     clockIn,
     clockOut,
     toggleTask,
     addTask,
     updateTask,
-    deleteTask
+    deleteTask,
+    sendMessage
   }
   
   return (
