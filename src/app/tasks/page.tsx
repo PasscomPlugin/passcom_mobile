@@ -13,6 +13,7 @@ import SortStatusSheet from "@/components/SortStatusSheet"
 import TagSelectionSheet from "@/components/TagSelectionSheet"
 import SortUserSheet from "@/components/SortUserSheet"
 import DateRangeModal from "@/components/DateRangeModal"
+import { useGlobalApp } from "@/context/GlobalContext"
 
 // Helper functions for date manipulation
 const getStartOfWeek = (date: Date) => {
@@ -34,6 +35,8 @@ const isSameDay = (date1: Date, date2: Date) => {
 
 function TasksPageContent() {
   const router = useRouter()
+  const { tasks: globalTasks, toggleTask } = useGlobalApp()
+  
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const miniCalendarRef = useRef<HTMLDivElement>(null)
   const touchStartX = useRef<number>(0)
@@ -938,6 +941,7 @@ function TasksPageContent() {
   }
 
   const handleCompleteTask = (taskId: string | number) => {
+    toggleTask(String(taskId))
     console.log('Task completed:', taskId)
   }
 
