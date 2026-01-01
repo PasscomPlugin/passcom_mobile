@@ -815,9 +815,11 @@ function TasksPageContent() {
       const newTask = {
         ...task,
         id: `task-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        dueTime: task.dueTime || new Date().toISOString()
+        // Use dueTime if provided, otherwise use startTime, otherwise use today
+        dueTime: task.dueTime || task.startTime || new Date().toISOString()
       }
       console.log('➕ Adding new task:', newTask)
+      console.log('   📅 Start:', task.startTime, '| Due:', newTask.dueTime)
       addTask(newTask)
     }
     
