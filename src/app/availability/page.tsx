@@ -2,7 +2,7 @@
 
 import { Suspense, useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, ChevronRight, Repeat, Calendar as CalendarIcon, List, Sun, Thermometer, CircleSlash, Star, Plus } from "lucide-react"
+import { ArrowLeft, ChevronLeft, ChevronRight, Repeat, Calendar as CalendarIcon, List, Sun, Thermometer, CircleSlash, Star, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { WeeklyAvailability } from '@/types/availability'
 import { createEmptySchedule, SLOT_STATUS, DAYS_OF_WEEK } from '@/types/availability'
