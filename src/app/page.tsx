@@ -49,9 +49,12 @@ function HomeContent() {
       {/* Header */}
       <div className="bg-white border-b px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <span className="text-xl font-bold text-green-600">
+          <button
+            onClick={() => router.push("/pay")}
+            className="text-xl font-bold text-green-600 hover:text-green-700 transition-colors"
+          >
             {showEarnings ? `$${earnings.toFixed(2)}` : "•••••"}
-          </span>
+          </button>
           <button
             onClick={() => setShowEarnings(!showEarnings)}
             className="h-6 w-6 flex items-center justify-center text-gray-400 hover:text-gray-600"

@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { ChevronLeft, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import BottomNav from "@/components/BottomNav"
 
 export default function PayDashboardPage() {
   const router = useRouter()
@@ -13,7 +14,7 @@ export default function PayDashboardPage() {
   const metricsGood = onTimeArrival >= 95 && shiftAcceptance >= 95
 
   return (
-    <div className="min-h-screen bg-white flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col pb-20">
       {/* Sticky Header */}
       <div className="sticky top-0 bg-white border-b px-4 py-4 flex items-center z-10">
         <Button 
@@ -205,6 +206,9 @@ export default function PayDashboardPage() {
           Instant Cash Out
         </Button>
       </div>
+
+      {/* Bottom Navigation */}
+      <BottomNav />
     </div>
   )
 }

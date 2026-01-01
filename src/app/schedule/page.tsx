@@ -1,8 +1,8 @@
 "use client"
 
-import { Suspense, useState, useMemo, useRef, useEffect } from "react"
+import { Suspense, useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, User, Users, Bell, Search, X, Calendar } from "lucide-react"
+import { ArrowLeft, User, Users, Bell, Search, X, CalendarCheck } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { ShiftCard } from "@/components/ShiftCard"
 import { Shift, generateShiftsForDays, calculateShiftHours } from "@/data/dummyShifts"
@@ -47,14 +47,25 @@ function SchedulePageContent() {
   const touchStartX = useRef<number>(0)
   const touchStartY = useRef<number>(0)
   const touchStartTime = useRef<number>(0)
+  const isDragSession = useRef<boolean>(false) // Track if we're in an active drag
   
   const [isSearchActive, setIsSearchActive] = useState(false)
   const [isTeamView, setIsTeamView] = useState(false)
   const [searchQuery, setSearchQuery] = useState("")
   const [isMounted, setIsMounted] = useState(false)
   
-  const today = new Date()
+  // Use a static date to prevent hydration mismatch
+  const today = useMemo(() => {
+    const date = new Date()
+    date.setHours(0, 0, 0, 0)
+    return date
+  }, [])
   const currentUserId = 'u-1'
+  
+  // Client-only gate: Set mounted state after first render
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
   
   // Week navigation
   const [currentWeekOffset, setCurrentWeekOffset] = useState(0)
@@ -78,15 +89,14 @@ function SchedulePageContent() {
     
     const totalDays = (loadedWeeksRange.end - loadedWeeksRange.start) * 7
     
-    // Generate shifts for all days at once
-    const allShifts = generateShiftsForDays(start, totalDays)
+    // Generate shifts for all days at once (pass today for deterministic status)
+    const allShifts = generateShiftsForDays(start, totalDays, today)
     
     for (let i = 0; i < totalDays; i++) {
       const date = new Date(start)
       date.setDate(date.getDate() + i)
       
       const dateKey = formatDateKey(date)
-      const isPast = date < today && !isSameDay(date, today)
       
       // Get shifts for this day
       let dayShifts = allShifts.filter(shift => shift.date === dateKey)
@@ -101,15 +111,15 @@ function SchedulePageContent() {
         dateKey,
         dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
         dayNumber: date.getDate(),
-        isToday: isSameDay(date, today),
-        isPast,
+        isToday: isMounted ? isSameDay(date, today) : false,
+        isPast: false, // Remove time-based calculation to prevent hydration errors
         hasContent: dayShifts.length > 0,
         shifts: dayShifts
       })
     }
     
     return days
-  }, [today, loadedWeeksRange, isTeamView, currentUserId])
+  }, [today, loadedWeeksRange, isTeamView, currentUserId, isMounted])
   
   // Apply search to get displayed days
   const displayedDays = useMemo(() => {
@@ -217,10 +227,10 @@ function SchedulePageContent() {
         
         weekDays.push({
           dateKey,
-          dayName: date.toLocaleDateString('en-US', { weekday: 'short' })[0],
+          dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
           date: date.getDate(),
           hasContent: dayData?.hasContent || false,
-          isToday: isSameDay(date, today)
+          isToday: isMounted ? isSameDay(date, today) : false
         })
       }
       
@@ -230,12 +240,15 @@ function SchedulePageContent() {
     }
     
     return weeks
-  }, [currentWeekOffset, allDays, today])
+  }, [currentWeekOffset, allDays, today, isMounted])
   
   // Scroll to a specific day
   const scrollToDay = (dateKey: string) => {
+    console.log('scrollToDay called:', dateKey, 'isDragging:', isDragging)
+    
     // Don't scroll while dragging
     if (isDragging) {
+      console.log('Blocked by isDragging')
       return
     }
     
@@ -243,13 +256,23 @@ function SchedulePageContent() {
     const dayElement = dayRefs.current[dateKey]
     const miniCalendar = miniCalendarRef.current
     
+    console.log('Refs:', { container: !!container, dayElement: !!dayElement, miniCalendar: !!miniCalendar })
+    
     if (container && dayElement) {
       ignoreScrollUntil.current = Date.now() + 1000
       
+      // Walk up the DOM tree to calculate cumulative offset (correct for nested elements)
+      let elementTop = 0
+      let element: HTMLElement | null = dayElement
+      
+      while (element && element !== container) {
+        elementTop += element.offsetTop
+        element = element.offsetParent as HTMLElement
+      }
+      
       const headerHeight = 56 // Main header
       const searchBannerHeight = searchQuery.trim() ? 35 : 0 // Search banner if active
-      const miniCalendarHeight = miniCalendar ? miniCalendar.offsetHeight : 0 // Actual mini calendar height
-      const elementTop = dayElement.offsetTop
+      const miniCalendarHeight = miniCalendar ? miniCalendar.offsetHeight : 0
       
       container.scrollTo({
         top: elementTop - miniCalendarHeight - headerHeight - searchBannerHeight,
@@ -258,13 +281,114 @@ function SchedulePageContent() {
     }
   }
   
-  // Initial scroll to today
+  // Handle scroll to update mini calendar and load more weeks (infinite scroll)
+  const handleScroll = useCallback(() => {
+    if (!scrollContainerRef.current) return
+    
+    // Skip scroll handling if we recently changed week manually (prevents feedback loop)
+    if (Date.now() < ignoreScrollUntil.current) {
+      return
+    }
+    
+    const container = scrollContainerRef.current
+    const containerTop = container.getBoundingClientRect().top
+    
+    // Find the day at the top of viewport
+    let topDay: any = null
+    let minDistance = Infinity
+    
+    allDays.forEach(day => {
+      const element = dayRefs.current[day.dateKey]
+      if (element) {
+        const elementTop = element.getBoundingClientRect().top
+        const distance = Math.abs(elementTop - containerTop)
+        if (distance < minDistance) {
+          minDistance = distance
+          topDay = day
+        }
+      }
+    })
+    
+    if (topDay) {
+      // Calculate which week contains this day
+      const weekStart = getStartOfWeek(topDay.date)
+      const todayWeekStart = getStartOfWeek(today)
+      const weeksDiff = Math.round((weekStart.getTime() - todayWeekStart.getTime()) / (7 * 24 * 60 * 60 * 1000))
+      
+      if (weeksDiff !== currentWeekOffset) {
+        setCurrentWeekOffset(weeksDiff)
+      }
+    }
+    
+    // Check if we need to load more weeks (infinite scroll)
+    const scrollTop = container.scrollTop
+    const scrollHeight = container.scrollHeight
+    const clientHeight = container.clientHeight
+    
+    if (scrollTop < 500) {
+      // Near top - load previous weeks
+      setLoadedWeeksRange(prev => ({
+        start: prev.start - 2,
+        end: prev.end
+      }))
+    } else if (scrollHeight - scrollTop - clientHeight < 500) {
+      // Near bottom - load next weeks
+      setLoadedWeeksRange(prev => ({
+        start: prev.start,
+        end: prev.end + 2
+      }))
+    }
+  }, [allDays, currentWeekOffset, today])
+  
+  // Attach scroll listener
   useEffect(() => {
+    const container = scrollContainerRef.current
+    if (!container) return
+    
+    const throttledScroll = () => {
+      requestAnimationFrame(handleScroll)
+    }
+    
+    container.addEventListener('scroll', throttledScroll)
+    return () => container.removeEventListener('scroll', throttledScroll)
+  }, [handleScroll])
+  
+  // Set initial scroll position to today (before paint, no animation)
+  useLayoutEffect(() => {
+    const container = scrollContainerRef.current
+    const miniCalendar = miniCalendarRef.current
+    
+    if (!container || !miniCalendar || !isMounted) return
+    
+    // Use a minimal delay to ensure refs are populated
     const timer = setTimeout(() => {
       const now = new Date()
       const todayKey = formatDateKey(now)
-      scrollToDay(todayKey)
-    }, 500)
+      const dayElement = dayRefs.current[todayKey]
+      
+      if (dayElement) {
+        console.log('Setting initial scroll to today:', todayKey, now.toLocaleDateString())
+        
+        // Walk up the DOM tree to calculate total offset (same as scrollToDay)
+        let elementTop = 0
+        let element: HTMLElement | null = dayElement
+        
+        while (element && element !== container) {
+          elementTop += element.offsetTop
+          element = element.offsetParent as HTMLElement
+        }
+        
+        // Account for sticky header + mini calendar
+        const miniCalendarHeight = miniCalendar.offsetHeight
+        const headerHeight = 56 // h-14 from header
+        
+        // Prevent handleScroll from interfering
+        ignoreScrollUntil.current = Date.now() + 1000
+        
+        // Set scroll position directly (no animation for initial load)
+        container.scrollTop = elementTop - miniCalendarHeight - headerHeight
+      }
+    }, 0)
     
     return () => clearTimeout(timer)
   }, [isMounted])
@@ -315,18 +439,27 @@ function SchedulePageContent() {
   
   // Mini calendar drag handlers - Core logic
   const handleDragStart = (clientX: number, clientY: number) => {
+    isDragSession.current = true // Mark that we've started a drag session
     touchStartX.current = clientX
     touchStartY.current = clientY
     touchStartTime.current = Date.now()
-    setIsDragging(true)
+    // Don't set isDragging yet - wait for actual movement
     setIsTransitioning(false)
   }
 
   const handleDragMove = (clientX: number, clientY: number) => {
-    if (!isDragging) return false
+    // Only handle movement if we're in an active drag session
+    if (!isDragSession.current) return false
     
     const diffX = clientX - touchStartX.current
     const diffY = clientY - touchStartY.current
+    
+    // Only start dragging if moved more than 5px horizontally
+    if (Math.abs(diffX) > 5 && !isDragging) {
+      setIsDragging(true)
+    }
+    
+    if (!isDragging) return false
     
     // Only allow horizontal drag if movement is more horizontal than vertical
     if (Math.abs(diffX) > Math.abs(diffY)) {
@@ -337,6 +470,9 @@ function SchedulePageContent() {
   }
 
   const handleDragEnd = (clientX: number) => {
+    // Always reset the drag session flag
+    isDragSession.current = false
+    
     if (!isDragging) return
     
     const touchEndTime = Date.now()
@@ -440,6 +576,15 @@ function SchedulePageContent() {
   
   const headerBtnClass = "h-12 w-12 rounded-full flex items-center justify-center hover:bg-blue-50 text-blue-600 transition-colors focus:outline-none"
   
+  // Client-Only Gate: Show loading state until mounted (prevents hydration errors)
+  if (!isMounted) {
+    return (
+      <div className="h-screen bg-white flex items-center justify-center">
+        <div className="text-gray-400 text-sm">Loading schedule...</div>
+      </div>
+    )
+  }
+  
   return (
     <div className="h-screen bg-white flex flex-col pb-20">
       {/* 1. HEADER */}
@@ -487,7 +632,7 @@ function SchedulePageContent() {
                   onClick={() => router.push('/availability')}
                   title="Set My Availability"
                 >
-                  <Calendar className="h-[30px] w-[30px]" strokeWidth={2} />
+                  <CalendarCheck className="h-[30px] w-[30px]" strokeWidth={2} />
                 </button>
 
                 {/* Search */}
@@ -571,19 +716,27 @@ function SchedulePageContent() {
                 {threeWeeks.prev.map((day) => (
                   <button
                     key={day.dateKey}
-                    onClick={() => scrollToDay(day.dateKey)}
-                    className="flex flex-col items-center py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                    onClick={() => {
+                      console.log('PREV WEEK CLICK:', day.dateKey)
+                      scrollToDay(day.dateKey)
+                    }}
+                    className="flex flex-col items-center py-2 rounded-lg hover:bg-gray-50 transition-colors relative"
                   >
                     <span className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">{day.dayName}</span>
+                    
                     {day.isToday ? (
                       <div className="h-9 w-9 rounded-full bg-blue-600 flex items-center justify-center shadow-sm">
-                        <span className="text-[21px] font-bold text-white">{day.date}</span>
+                        <span className="text-[21px] font-bold text-white leading-none">{day.date}</span>
                       </div>
                     ) : (
-                      <span className={`text-[21px] font-semibold ${day.hasContent ? 'text-gray-500' : 'text-gray-500'}`}>
+                      <span className="text-[21px] font-semibold text-gray-500">
                         {day.date}
                       </span>
                     )}
+                    
+                    <div className={`h-1.5 w-1.5 rounded-full mt-1 transition-opacity ${
+                      day.hasContent && !day.isToday ? 'bg-blue-500' : 'opacity-0'
+                    }`} />
                   </button>
                 ))}
               </div>
@@ -595,19 +748,27 @@ function SchedulePageContent() {
                 {threeWeeks.current.map((day) => (
                   <button
                     key={day.dateKey}
-                    onClick={() => scrollToDay(day.dateKey)}
-                    className="flex flex-col items-center py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                    onClick={() => {
+                      console.log('CURRENT WEEK CLICK:', day.dateKey)
+                      scrollToDay(day.dateKey)
+                    }}
+                    className="flex flex-col items-center py-2 rounded-lg hover:bg-gray-50 transition-colors relative"
                   >
                     <span className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">{day.dayName}</span>
+                    
                     {day.isToday ? (
                       <div className="h-9 w-9 rounded-full bg-blue-600 flex items-center justify-center shadow-sm">
-                        <span className="text-[21px] font-bold text-white">{day.date}</span>
+                        <span className="text-[21px] font-bold text-white leading-none">{day.date}</span>
                       </div>
                     ) : (
-                      <span className={`text-[21px] font-semibold ${day.hasContent ? 'text-gray-500' : 'text-gray-500'}`}>
+                      <span className="text-[21px] font-semibold text-gray-500">
                         {day.date}
                       </span>
                     )}
+                    
+                    <div className={`h-1.5 w-1.5 rounded-full mt-1 transition-opacity ${
+                      day.hasContent && !day.isToday ? 'bg-blue-500' : 'opacity-0'
+                    }`} />
                   </button>
                 ))}
               </div>
@@ -619,19 +780,27 @@ function SchedulePageContent() {
                 {threeWeeks.next.map((day) => (
                   <button
                     key={day.dateKey}
-                    onClick={() => scrollToDay(day.dateKey)}
-                    className="flex flex-col items-center py-2 rounded-lg hover:bg-gray-50 transition-colors"
+                    onClick={() => {
+                      console.log('NEXT WEEK CLICK:', day.dateKey)
+                      scrollToDay(day.dateKey)
+                    }}
+                    className="flex flex-col items-center py-2 rounded-lg hover:bg-gray-50 transition-colors relative"
                   >
                     <span className="text-xs font-medium text-gray-500 mb-1 uppercase tracking-wide">{day.dayName}</span>
+                    
                     {day.isToday ? (
                       <div className="h-9 w-9 rounded-full bg-blue-600 flex items-center justify-center shadow-sm">
-                        <span className="text-[21px] font-bold text-white">{day.date}</span>
+                        <span className="text-[21px] font-bold text-white leading-none">{day.date}</span>
                       </div>
                     ) : (
-                      <span className={`text-[21px] font-semibold ${day.hasContent ? 'text-gray-500' : 'text-gray-500'}`}>
+                      <span className="text-[21px] font-semibold text-gray-500">
                         {day.date}
                       </span>
                     )}
+                    
+                    <div className={`h-1.5 w-1.5 rounded-full mt-1 transition-opacity ${
+                      day.hasContent && !day.isToday ? 'bg-blue-500' : 'opacity-0'
+                    }`} />
                   </button>
                 ))}
               </div>

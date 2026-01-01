@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation"
 import { ArrowLeft, Calendar, AlertCircle, Sun, Thermometer, CircleSlash, MoreHorizontal } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import DateRangeModal from "@/components/DateRangeModal"
 import { TimeOffType, calculateDaysBetween } from "@/types/timeOff"
 
 const timeOffTypes = [

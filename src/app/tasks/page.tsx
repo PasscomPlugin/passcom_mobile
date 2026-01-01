@@ -1,6 +1,6 @@
 "use client"
 
-import { Suspense, useState, useMemo, useRef, useEffect, useCallback } from "react"
+import { Suspense, useState, useMemo, useRef, useEffect, useLayoutEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, User, Users, Bell, Filter, Search, Plus, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -50,8 +50,14 @@ function TasksPageContent() {
   const [isOverdueModalVisible, setIsOverdueModalVisible] = useState(false)
   const [isTaskEditorOpen, setIsTaskEditorOpen] = useState(false)
   const [editingTask, setEditingTask] = useState<any>(null)
+  const [isMounted, setIsMounted] = useState(false)
   
-  const today = new Date()
+  // Use useMemo to prevent hydration mismatch (same date on server and client)
+  const today = useMemo(() => {
+    const date = new Date()
+    date.setHours(0, 0, 0, 0)
+    return date
+  }, [])
   
   // Active Filters state
   interface ActiveFilter {
@@ -62,7 +68,6 @@ function TasksPageContent() {
   
   const [activeFilters, setActiveFilters] = useState<ActiveFilter[]>([])
   const [pendingFilters, setPendingFilters] = useState<ActiveFilter[]>([])
-  const [isMounted, setIsMounted] = useState(false)
   
   // Filter state
   const [isStatusSheetVisible, setIsStatusSheetVisible] = useState(false)
@@ -86,6 +91,11 @@ function TasksPageContent() {
   const [isTransitioning, setIsTransitioning] = useState(false)
   
   const currentUserId = 'u-1'
+  
+  // Set isMounted after initial render to prevent hydration mismatch
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
   
   // Generate days dynamically based on loaded weeks range
   const allDays = useMemo(() => {
@@ -258,7 +268,7 @@ function TasksPageContent() {
         dateKey,
         dayName: date.toLocaleDateString('en-US', { weekday: 'short' }),
         dayNumber: date.getDate(),
-        isToday: isSameDay(date, today),
+        isToday: isMounted && isSameDay(date, today),
         isPast,
         hasContent: tasks.length > 0,
         tasks
@@ -266,7 +276,7 @@ function TasksPageContent() {
     }
     
     return days
-  }, [today, loadedWeeksRange, isTeamView, currentUserId])
+  }, [today, loadedWeeksRange, isTeamView, currentUserId, isMounted])
   
   // Apply active filters to get displayed days
   const displayedDays = useMemo(() => {
@@ -411,7 +421,7 @@ function TasksPageContent() {
           date: date.getDate(),
           dateKey,
           hasContent: dayData?.hasContent || false,
-          isToday: isSameDay(date, today),
+          isToday: isMounted && isSameDay(date, today),
         })
       }
       
@@ -423,7 +433,7 @@ function TasksPageContent() {
       current: getWeekDays(currentWeekOffset),
       next: getWeekDays(currentWeekOffset + 1),
     }
-  }, [currentWeekOffset, allDays, today])
+  }, [currentWeekOffset, allDays, today, isMounted])
   
   // Find overdue tasks
   const overdueTasks = useMemo(() => {
@@ -699,16 +709,43 @@ function TasksPageContent() {
     }
   }, [])
 
-  // Scroll to today on mount
-  useEffect(() => {
-    // Directly scroll to today's date, just like clicking on it
+  // Set initial scroll position to today (before paint, no animation)
+  useLayoutEffect(() => {
+    const container = scrollContainerRef.current
+    const miniCalendar = miniCalendarRef.current
+    
+    if (!container || !miniCalendar) return
+    
+    // Use a minimal delay to ensure refs are populated
     const timer = setTimeout(() => {
-      // Use a fresh date to ensure it's current
       const now = new Date()
       const todayKey = formatDateKey(now)
-      console.log('Scrolling to today:', todayKey, now.toLocaleDateString())
-      scrollToDay(todayKey)
-    }, 500)
+      const dayElement = dayRefs.current[todayKey]
+      
+      if (dayElement) {
+        console.log('Setting initial scroll to today:', todayKey, now.toLocaleDateString())
+        
+        // Use the SAME calculation as scrollToDay() for consistency
+        let elementTop = 0
+        let element: HTMLElement | null = dayElement
+        
+        // Walk up the DOM tree to calculate total offset
+        while (element && element !== container) {
+          elementTop += element.offsetTop
+          element = element.offsetParent as HTMLElement
+        }
+        
+        // Account for sticky header + mini calendar (same as scrollToDay)
+        const miniCalendarHeight = miniCalendar.offsetHeight
+        const headerHeight = 56 // h-14 from header
+        
+        // Set scroll position directly (no animation for initial load)
+        container.scrollTop = elementTop - miniCalendarHeight - headerHeight
+        
+        // Set ignore flag to prevent scroll handler from triggering
+        ignoreScrollUntil.current = Date.now() + 1000
+      }
+    }, 0)
     
     return () => clearTimeout(timer)
   }, [])

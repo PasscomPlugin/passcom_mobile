@@ -74,7 +74,7 @@ export const DUMMY_SHIFTS: Shift[] = [
 ]
 
 // Function to generate shifts for multiple days
-export function generateShiftsForDays(startDate: Date, numDays: number): Shift[] {
+export function generateShiftsForDays(startDate: Date, numDays: number, today: Date): Shift[] {
   const shifts: Shift[] = []
   const users = [
     { id: 'u-1', name: 'Pete Seager' },
@@ -95,7 +95,7 @@ export function generateShiftsForDays(startDate: Date, numDays: number): Shift[]
     const date = new Date(startDate)
     date.setDate(date.getDate() + day)
     const dateStr = date.toISOString().split('T')[0]
-    const isPast = date < new Date(new Date().setHours(0, 0, 0, 0))
+    const isPast = date < today
     
     // Generate 3-5 shifts per day (deterministic based on day)
     const numShifts = 3 + (day % 3)
@@ -110,7 +110,7 @@ export function generateShiftsForDays(startDate: Date, numDays: number): Shift[]
       if (isPast) {
         // Deterministic status for past shifts
         status = (day + i) % 10 === 0 ? 'no-show' : 'completed'
-      } else if (date.toDateString() === new Date().toDateString() && i === 1) {
+      } else if (date.toDateString() === today.toDateString() && i === 1) {
         status = 'clocked-in'
       }
       

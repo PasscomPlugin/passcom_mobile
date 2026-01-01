@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Clock, User } from "lucide-react"
 import { Shift, calculateShiftHours } from "@/data/dummyShifts"
 import { Badge } from "@/components/ui/badge"
@@ -10,6 +11,13 @@ interface ShiftCardProps {
 }
 
 export function ShiftCard({ shift, onClick }: ShiftCardProps) {
+  // Mounted guard to prevent hydration mismatch
+  const [isMounted, setIsMounted] = useState(false)
+  
+  useEffect(() => {
+    setIsMounted(true)
+  }, [])
+  
   const hours = calculateShiftHours(shift)
   
   // Status badge styling
@@ -27,7 +35,8 @@ export function ShiftCard({ shift, onClick }: ShiftCardProps) {
     'no-show': 'No Show',
   }
   
-  const isCompleted = shift.status === 'completed'
+  // Only show completed/no-show state after mount to prevent hydration mismatch
+  const isCompleted = isMounted ? (shift.status === 'completed' || shift.status === 'no-show') : false
   
   return (
     <div
@@ -45,8 +54,10 @@ export function ShiftCard({ shift, onClick }: ShiftCardProps) {
             <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">
               {shift.startTime} - {shift.endTime}
             </span>
-            <Badge variant="secondary" className={`h-5 px-1.5 text-[10px] font-bold ${statusStyles[shift.status]}`}>
-              {statusLabels[shift.status]}
+            <Badge variant="secondary" className={`h-5 px-1.5 text-[10px] font-bold ${
+              isMounted ? statusStyles[shift.status] : statusStyles['scheduled']
+            }`}>
+              {isMounted ? statusLabels[shift.status] : statusLabels['scheduled']}
             </Badge>
           </div>
           
