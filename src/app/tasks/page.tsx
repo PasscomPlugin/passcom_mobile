@@ -1154,9 +1154,9 @@ function TasksPageContent() {
                                     <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">
                                       {task.time}
                                     </span>
-                                    {task.isBounty && (
+                                    {task.isBounty && task.bountyMinutes && (
                                       <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 border-0 h-5 px-1.5 text-[10px] font-bold">
-                                        {task.price} BOUNTY
+                                        {task.bountyMinutes} MIN BOUNTY
                                       </Badge>
                                     )}
                                   </div>

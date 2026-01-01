@@ -13,7 +13,7 @@ export interface Task {
   assigneeId: string
   dueTime: string
   isBounty?: boolean
-  price?: string
+  bountyMinutes?: number  // Changed from price (string) to bountyMinutes (number)
   description?: string
   startTime?: string
   requirePhoto?: boolean
@@ -106,7 +106,7 @@ const generateInitialTasks = (): Task[] => {
         status: "open",
         tags: ["inventory", "admin"],
         isBounty: true,
-        price: "$10.00",
+        bountyMinutes: 30,  // 30 minutes bounty
         creatorId: 'u2',
         assigneeId: 'u1',
         dueTime: date.toISOString()
