@@ -437,8 +437,11 @@ function AvailabilityHubContent() {
     
     // Check if any time off request covers this cell
     const timeOffRequest = timeOffRequests.find(request => {
+      // Extract date part only from request dates (they might include time)
+      const requestStartDate = request.startDate.split('T')[0]
+      const requestEndDate = request.endDate.split('T')[0]
       // Check if cell date is within request date range
-      return cellDateStr >= request.startDate && cellDateStr <= request.endDate
+      return cellDateStr >= requestStartDate && cellDateStr <= requestEndDate
     })
     
     if (timeOffRequest) {
@@ -492,48 +495,30 @@ function AvailabilityHubContent() {
 
   // ===== REQUESTS TAB DATA =====
   
-  // Mock Time Off Data
-  const upcomingRequests = [
-    {
-      id: 1,
-      month: "DEC",
-      day: "23",
-      title: "Vacation",
-      duration: "5 days",
-      status: "Pending",
-      statusColor: "bg-yellow-50 text-yellow-700 border-yellow-200",
-    },
-    {
-      id: 2,
-      month: "JAN",
-      day: "15",
-      title: "Sick Leave",
-      duration: "2 days",
-      status: "Approved",
-      statusColor: "bg-green-50 text-green-700 border-green-200",
-    },
-  ]
+  // Transform saved time off requests into display format
+  const upcomingRequests = timeOffRequests.map(request => {
+    const startDate = new Date(request.startDate)
+    const endDate = new Date(request.endDate)
+    const durationDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1
+    
+    const statusColors = {
+      pending: "bg-yellow-50 text-yellow-700 border-yellow-200",
+      approved: "bg-green-50 text-green-700 border-green-200",
+      denied: "bg-red-50 text-red-700 border-red-200"
+    }
+    
+    return {
+      id: request.id,
+      month: startDate.toLocaleDateString('en-US', { month: 'short' }).toUpperCase(),
+      day: startDate.getDate().toString(),
+      title: request.type.toUpperCase(),
+      duration: durationDays === 1 ? "1 day" : `${durationDays} days`,
+      status: request.status.charAt(0).toUpperCase() + request.status.slice(1),
+      statusColor: statusColors[request.status]
+    }
+  })
 
-  const pastRequests = [
-    {
-      id: 3,
-      month: "NOV",
-      day: "20",
-      title: "Personal Day",
-      duration: "1 day",
-      status: "Approved",
-      statusColor: "bg-green-50 text-green-700 border-green-200",
-    },
-    {
-      id: 4,
-      month: "OCT",
-      day: "12",
-      title: "Vacation",
-      duration: "3 days",
-      status: "Approved",
-      statusColor: "bg-green-50 text-green-700 border-green-200",
-    },
-  ]
+  const pastRequests: typeof upcomingRequests = []
 
   const timeOffTypes = [
     { id: "pto", label: "PTO", icon: Sun, color: "bg-orange-50 text-orange-600 border-orange-200 hover:bg-orange-100" },
