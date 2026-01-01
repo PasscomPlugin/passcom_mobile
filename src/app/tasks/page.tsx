@@ -129,7 +129,16 @@ function TasksPageContent() {
       
       // Filter based on team view
       if (!isTeamView) {
-        tasks = tasks.filter(task => task.assigneeId === currentUserId)
+        console.log(`🔍 Filtering for currentUserId: ${currentUserId}, isTeamView: ${isTeamView}`)
+        const beforeFilter = tasks.length
+        tasks = tasks.filter(task => {
+          const matches = task.assigneeId === currentUserId
+          if (!matches) {
+            console.log(`❌ Task "${task.title}" filtered out. assigneeId: "${task.assigneeId}" !== currentUserId: "${currentUserId}"`)
+          }
+          return matches
+        })
+        console.log(`✅ After team filter: ${beforeFilter} -> ${tasks.length} tasks`)
       }
       
       days.push({
