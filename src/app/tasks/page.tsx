@@ -105,6 +105,11 @@ function TasksPageContent() {
   // Generate days dynamically based on loaded weeks range
   const allDays = useMemo(() => {
     console.log('📅 Rendering tasks page with global tasks:', globalTasks)
+    console.log('📊 Task summary:')
+    globalTasks.forEach(task => {
+      const taskDate = new Date(task.dueTime)
+      console.log(`   - "${task.title}" | Due: ${task.dueTime} | Local: ${taskDate.toLocaleDateString()} ${taskDate.toLocaleTimeString()}`)
+    })
     
     const days = []
     const start = getStartOfWeek(today)
@@ -122,18 +127,7 @@ function TasksPageContent() {
       // Use global tasks - filter tasks for this specific day
       let tasks: any[] = globalTasks.filter(task => {
         const taskDate = new Date(task.dueTime)
-        const matches = isSameDay(taskDate, date)
-        
-        // Debug: Show task date matching
-        if (task.title.includes('Jan 4')) {
-          console.log(`🗓️ Task "${task.title}"`)
-          console.log(`   Stored dueTime: ${task.dueTime}`)
-          console.log(`   Parsed as local: ${taskDate.toLocaleString()}`)
-          console.log(`   Checking against: ${date.toLocaleDateString()}`)
-          console.log(`   Match: ${matches}`)
-        }
-        
-        return matches
+        return isSameDay(taskDate, date)
       })
       
       const daysSinceStart = i
