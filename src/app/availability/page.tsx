@@ -446,7 +446,8 @@ function AvailabilityHubContent() {
     })
     
     if (timeOffRequest) {
-      return { type: 'timeoff', label: timeOffRequest.type, color: '#fde047', textColor: '#000' } // Yellow
+      const statusLabel = timeOffRequest.status === 'pending' ? ' (pending)' : ''
+      return { type: 'timeoff', label: `${timeOffRequest.type}${statusLabel}`, color: '#fde047', textColor: '#000' } // Yellow
     }
     
     // Check for calendar exceptions
