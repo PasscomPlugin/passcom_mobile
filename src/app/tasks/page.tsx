@@ -95,7 +95,7 @@ function TasksPageContent() {
   const [dragOffset, setDragOffset] = useState(0)
   const [isTransitioning, setIsTransitioning] = useState(false)
   
-  const currentUserId = 'u-1'
+  const currentUserId = 'u1'
   
   // Set isMounted after initial render to prevent hydration mismatch
   useEffect(() => {

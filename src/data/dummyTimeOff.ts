@@ -9,7 +9,7 @@ import { TimeOffRequest, TimeOffStats } from '@/types/timeOff'
 export const mockTimeOffRequests: TimeOffRequest[] = [
   {
     id: 'to-1',
-    userId: 'u-1',
+    userId: 'u1',
     userName: 'Pete Seager',
     startDate: new Date(2024, 11, 25), // Dec 25, 2024
     endDate: new Date(2024, 11, 27),   // Dec 27, 2024
@@ -21,7 +21,7 @@ export const mockTimeOffRequests: TimeOffRequest[] = [
   },
   {
     id: 'to-2',
-    userId: 'u-1',
+    userId: 'u1',
     userName: 'Pete Seager',
     startDate: new Date(2025, 0, 10), // Jan 10, 2025
     endDate: new Date(2025, 0, 10),
@@ -33,7 +33,7 @@ export const mockTimeOffRequests: TimeOffRequest[] = [
   },
   {
     id: 'to-3',
-    userId: 'u-1',
+    userId: 'u1',
     userName: 'Pete Seager',
     startDate: new Date(2024, 10, 1), // Nov 1, 2024
     endDate: new Date(2024, 10, 5),   // Nov 5, 2024
@@ -47,7 +47,7 @@ export const mockTimeOffRequests: TimeOffRequest[] = [
   },
   {
     id: 'to-4',
-    userId: 'u-1',
+    userId: 'u1',
     userName: 'Pete Seager',
     startDate: new Date(2024, 9, 15), // Oct 15, 2024
     endDate: new Date(2024, 9, 15),
@@ -61,7 +61,7 @@ export const mockTimeOffRequests: TimeOffRequest[] = [
   },
   {
     id: 'to-5',
-    userId: 'u-1',
+    userId: 'u1',
     userName: 'Pete Seager',
     startDate: new Date(2024, 8, 20), // Sep 20, 2024
     endDate: new Date(2024, 8, 22),   // Sep 22, 2024
@@ -75,7 +75,7 @@ export const mockTimeOffRequests: TimeOffRequest[] = [
   },
   {
     id: 'to-6',
-    userId: 'u-1',
+    userId: 'u1',
     userName: 'Pete Seager',
     startDate: new Date(2024, 11, 31), // Dec 31, 2024
     endDate: new Date(2025, 0, 2),     // Jan 2, 2025

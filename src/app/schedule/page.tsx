@@ -60,7 +60,7 @@ function SchedulePageContent() {
     date.setHours(0, 0, 0, 0)
     return date
   }, [])
-  const currentUserId = 'u-1'
+  const currentUserId = 'u1'
   
   // Client-only gate: Set mounted state after first render
   useEffect(() => {

@@ -63,8 +63,8 @@ const generateInitialTasks = (): Task[] => {
         time: "8:00 AM",
         status: "new",
         tags: ["kitchen", "maintenance"],
-        creatorId: 'u-1',
-        assigneeId: 'u-1',
+        creatorId: 'u1',
+        assigneeId: 'u1',
         dueTime: date.toISOString()
       })
     }
@@ -77,8 +77,8 @@ const generateInitialTasks = (): Task[] => {
         time: "10:00 AM",
         status: "open",
         tags: ["prep", "kitchen"],
-        creatorId: 'u-1',
-        assigneeId: 'u-2',
+        creatorId: 'u1',
+        assigneeId: 'u2',
         dueTime: date.toISOString()
       })
     }
@@ -91,8 +91,8 @@ const generateInitialTasks = (): Task[] => {
         time: "2:00 PM",
         status: "done",
         tags: ["cleaning"],
-        creatorId: 'u-2',
-        assigneeId: 'u-2',
+        creatorId: 'u2',
+        assigneeId: 'u2',
         dueTime: date.toISOString()
       })
     }
@@ -107,8 +107,8 @@ const generateInitialTasks = (): Task[] => {
         tags: ["inventory", "admin"],
         isBounty: true,
         price: "$10.00",
-        creatorId: 'u-2',
-        assigneeId: 'u-1',
+        creatorId: 'u2',
+        assigneeId: 'u1',
         dueTime: date.toISOString()
       })
     }

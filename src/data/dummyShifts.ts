@@ -42,7 +42,7 @@ export const DUMMY_SHIFTS: Shift[] = [
     date: new Date().toISOString().split('T')[0],
     startTime: '08:00',
     endTime: '16:00',
-    assignedUserId: 'u-1',
+    assignedUserId: 'u1',
     assignedUserName: 'Pete Seager',
     job: 'Server',
     status: 'scheduled',
@@ -54,7 +54,7 @@ export const DUMMY_SHIFTS: Shift[] = [
     date: new Date().toISOString().split('T')[0],
     startTime: '09:00',
     endTime: '17:00',
-    assignedUserId: 'u-2',
+    assignedUserId: 'u2',
     assignedUserName: 'Jane Smith',
     job: 'Cook',
     status: 'clocked-in',
@@ -65,7 +65,7 @@ export const DUMMY_SHIFTS: Shift[] = [
     date: new Date().toISOString().split('T')[0],
     startTime: '16:00',
     endTime: '23:00',
-    assignedUserId: 'u-1',
+    assignedUserId: 'u1',
     assignedUserName: 'Pete Seager',
     job: 'Manager',
     status: 'scheduled',
@@ -77,8 +77,8 @@ export const DUMMY_SHIFTS: Shift[] = [
 export function generateShiftsForDays(startDate: Date, numDays: number, today: Date): Shift[] {
   const shifts: Shift[] = []
   const users = [
-    { id: 'u-1', name: 'Pete Seager' },
-    { id: 'u-2', name: 'Jane Smith' },
+    { id: 'u1', name: 'Pete Seager' },
+    { id: 'u2', name: 'Jane Smith' },
     { id: 'u-3', name: 'Mike Johnson' },
     { id: 'u-4', name: 'Sarah Williams' },
   ]
