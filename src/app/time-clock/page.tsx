@@ -6,6 +6,7 @@ import { ArrowLeft, Bell, Play, Square, Coffee, DollarSign, Clock, MapPin, Alert
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import BottomNav from "@/components/BottomNav"
+import { useGlobalApp } from "@/context/GlobalContext"
 
 interface Break {
   start: Date
@@ -27,6 +28,7 @@ type WizardStep = 'tips' | 'review' | 'success'
 
 function TimeClockContent() {
   const router = useRouter()
+  const { shiftState, clockIn, clockOut } = useGlobalApp()
   
   // Mock scheduled shift
   const scheduledShift = {
@@ -46,10 +48,9 @@ function TimeClockContent() {
     editNote: undefined,
   })
   
-  // Clock state
-  const [isClockedIn, setIsClockedIn] = useState(false)
+  // Local clock state (for breaks and wizard)
   const [isOnBreak, setIsOnBreak] = useState(false)
-  const [elapsedTime, setElapsedTime] = useState(0)
+  const [elapsedTimeString, setElapsedTimeString] = useState("00:00:00")
   const timerIntervalRef = useRef<NodeJS.Timeout | null>(null)
   
   // Wizard state
@@ -61,12 +62,12 @@ function TimeClockContent() {
   const [editReason, setEditReason] = useState("")
   const [errors, setErrors] = useState<{ [key: string]: string }>({})
   
-  // Timer effect
+  // Timer effect - uses global shiftState
   useEffect(() => {
-    if (isClockedIn && !isOnBreak && timeEntry.actualStart) {
+    if (shiftState.status === 'clocked-in' && !isOnBreak && shiftState.startTime) {
       timerIntervalRef.current = setInterval(() => {
         const now = new Date()
-        const start = new Date(timeEntry.actualStart!)
+        const start = new Date(shiftState.startTime!)
         
         // Subtract break time
         let breakTime = 0
@@ -77,7 +78,10 @@ function TimeClockContent() {
         })
         
         const elapsed = Math.floor((now.getTime() - start.getTime()) / 1000) - breakTime
-        setElapsedTime(Math.max(0, elapsed))
+        const hours = Math.floor(elapsed / 3600)
+        const minutes = Math.floor((elapsed % 3600) / 60)
+        const seconds = elapsed % 60
+        setElapsedTimeString(`${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`)
       }, 1000)
     } else {
       if (timerIntervalRef.current) {
@@ -90,15 +94,7 @@ function TimeClockContent() {
         clearInterval(timerIntervalRef.current)
       }
     }
-  }, [isClockedIn, isOnBreak, timeEntry])
-  
-  // Format elapsed time
-  const formatElapsedTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600)
-    const minutes = Math.floor((seconds % 3600) / 60)
-    const secs = seconds % 60
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`
-  }
+  }, [shiftState.status, shiftState.startTime, isOnBreak, timeEntry.breaks])
   
   // Format time for display
   const formatTime = (date: Date) => {
@@ -184,14 +180,14 @@ function TimeClockContent() {
     return Math.floor(totalMinutes)
   }
   
-  // Handle clock in
+  // Handle clock in - uses global context
   const handleClockIn = () => {
     const now = new Date()
     setTimeEntry(prev => ({
       ...prev,
       actualStart: now,
     }))
-    setIsClockedIn(true)
+    clockIn()
     console.log('Clocked in at:', now)
   }
   
@@ -221,7 +217,7 @@ function TimeClockContent() {
     console.log('Break ended at:', now)
   }
   
-  // Handle clock out (open wizard)
+  // Handle clock out (open wizard) - uses global context
   const handleClockOut = () => {
     const now = new Date()
     setTimeEntry(prev => ({
@@ -233,6 +229,9 @@ function TimeClockContent() {
     if (isOnBreak) {
       handleEndBreak()
     }
+    
+    // Call global clockOut
+    clockOut()
     
     // Initialize edited times
     setEditedStartTime("")
@@ -323,7 +322,7 @@ function TimeClockContent() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col items-center justify-center p-6">
-        {!isClockedIn ? (
+        {shiftState.status === 'clocked-out' ? (
           /* STATE A: CLOCKED OUT */
           <div className="w-full max-w-md space-y-8">
             {/* Scheduled Shift Info */}
@@ -413,11 +412,11 @@ function TimeClockContent() {
               </div>
               
               <div className="text-7xl font-bold text-gray-900 font-mono tracking-tight">
-                {formatElapsedTime(elapsedTime)}
+                {elapsedTimeString}
               </div>
               
               <p className="text-sm text-gray-500">
-                Started at {timeEntry.actualStart && formatTime(timeEntry.actualStart)}
+                Started at {shiftState.startTime && formatTime(new Date(shiftState.startTime))}
               </p>
             </div>
 
