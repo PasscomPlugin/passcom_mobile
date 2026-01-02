@@ -2,8 +2,11 @@
 
 import { useState } from "react"
 import { Check, X, Clock, User, AlertCircle } from "lucide-react"
+import { useGlobalApp } from "@/context/GlobalContext"
 
 export default function ManagerDashboard() {
+  const { requests, updateRequestStatus } = useGlobalApp()
+
   // Mock data for clocked-in employees
   const [clockedIn] = useState([
     { id: 1, name: "Sarah Mitchell", role: "Shift Lead", time: "2h 15m", avatar: "SM" },
@@ -12,24 +15,31 @@ export default function ManagerDashboard() {
     { id: 4, name: "John Davis", role: "Kitchen", time: "2h 05m", avatar: "JD" },
   ])
 
-  // Mock data for pending approvals
-  const [approvals, setApprovals] = useState([
-    { id: 1, type: "PTO Request", name: "Sarah Mitchell", detail: "Jan 15-17", status: "pending" },
-    { id: 2, type: "Shift Swap", name: "Mike Chen", detail: "Fri 5pm → Sat 2pm", status: "pending" },
-    { id: 3, type: "Time Off", name: "Amy Rodriguez", detail: "Jan 20, 4 hours", status: "pending" },
-  ])
+  // Filter to show only pending requests
+  const pendingRequests = requests.filter(r => r.status === 'pending')
+  const [processingIds, setProcessingIds] = useState<Set<string>>(new Set())
 
-  const handleApprove = (id: number) => {
-    setApprovals(approvals.map(a => a.id === id ? { ...a, status: "approved" } : a))
+  const handleApprove = (id: string) => {
+    setProcessingIds(prev => new Set(prev).add(id))
+    updateRequestStatus(id, 'approved')
     setTimeout(() => {
-      setApprovals(approvals.filter(a => a.id !== id))
+      setProcessingIds(prev => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
     }, 1000)
   }
 
-  const handleDeny = (id: number) => {
-    setApprovals(approvals.map(a => a.id === id ? { ...a, status: "denied" } : a))
+  const handleDeny = (id: string) => {
+    setProcessingIds(prev => new Set(prev).add(id))
+    updateRequestStatus(id, 'denied')
     setTimeout(() => {
-      setApprovals(approvals.filter(a => a.id !== id))
+      setProcessingIds(prev => {
+        const next = new Set(prev)
+        next.delete(id)
+        return next
+      })
     }, 1000)
   }
 
@@ -89,54 +99,59 @@ export default function ManagerDashboard() {
                 <h2 className="text-base font-bold text-gray-900">Pending Approvals</h2>
               </div>
               <div className="px-3 py-1 bg-white rounded-full border border-orange-200">
-                <span className="text-sm font-bold text-orange-600">{approvals.filter(a => a.status === 'pending').length}</span>
+                <span className="text-sm font-bold text-orange-600">{pendingRequests.length}</span>
               </div>
             </div>
           </div>
 
           {/* Approval List */}
-          {approvals.length > 0 ? (
+          {pendingRequests.length > 0 ? (
             <div className="divide-y divide-gray-100">
-              {approvals.map((approval) => (
-                <div key={approval.id} className="px-4 py-3">
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900">{approval.type}</p>
-                      <p className="text-xs text-gray-600 mt-0.5">{approval.name}</p>
-                      <p className="text-xs text-gray-500 mt-1">{approval.detail}</p>
-                    </div>
-                    {approval.status === 'approved' && (
-                      <div className="px-2 py-1 bg-green-100 rounded-md">
-                        <span className="text-xs font-medium text-green-700">Approved</span>
+              {pendingRequests.map((request) => {
+                const isProcessing = processingIds.has(request.id)
+                const requestStatus = requests.find(r => r.id === request.id)?.status
+                
+                return (
+                  <div key={request.id} className="px-4 py-3">
+                    <div className="flex items-start justify-between gap-3 mb-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900">{request.type} Request</p>
+                        <p className="text-xs text-gray-600 mt-0.5">{request.userName}</p>
+                        <p className="text-xs text-gray-500 mt-1">{request.detail}</p>
                       </div>
-                    )}
-                    {approval.status === 'denied' && (
-                      <div className="px-2 py-1 bg-red-100 rounded-md">
-                        <span className="text-xs font-medium text-red-700">Denied</span>
+                      {isProcessing && requestStatus === 'approved' && (
+                        <div className="px-2 py-1 bg-green-100 rounded-md animate-in fade-in duration-200">
+                          <span className="text-xs font-medium text-green-700">Approved</span>
+                        </div>
+                      )}
+                      {isProcessing && requestStatus === 'denied' && (
+                        <div className="px-2 py-1 bg-red-100 rounded-md animate-in fade-in duration-200">
+                          <span className="text-xs font-medium text-red-700">Denied</span>
+                        </div>
+                      )}
+                    </div>
+                    
+                    {!isProcessing && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleApprove(request.id)}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium text-sm transition-colors"
+                        >
+                          <Check className="h-4 w-4" strokeWidth={2.5} />
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => handleDeny(request.id)}
+                          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium text-sm transition-colors"
+                        >
+                          <X className="h-4 w-4" strokeWidth={2.5} />
+                          Deny
+                        </button>
                       </div>
                     )}
                   </div>
-                  
-                  {approval.status === 'pending' && (
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleApprove(approval.id)}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-lg font-medium text-sm transition-colors"
-                      >
-                        <Check className="h-4 w-4" strokeWidth={2.5} />
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => handleDeny(approval.id)}
-                        className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium text-sm transition-colors"
-                      >
-                        <X className="h-4 w-4" strokeWidth={2.5} />
-                        Deny
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
+                )
+              })}
             </div>
           ) : (
             <div className="px-4 py-8 text-center">

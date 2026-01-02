@@ -6,6 +6,7 @@ import { ArrowLeft, ChevronLeft, ChevronRight, Repeat, Calendar as CalendarIcon,
 import { Button } from "@/components/ui/button"
 import type { WeeklyAvailability } from '@/types/availability'
 import { createEmptySchedule, SLOT_STATUS, DAYS_OF_WEEK } from '@/types/availability'
+import { useGlobalApp } from "@/context/GlobalContext"
 
 const CELL_HEIGHT = 22
 const CELL_WIDTH = 44
@@ -59,6 +60,7 @@ function getSlotColor(status: number, dayIndex: number, slotIndex: number): stri
 
 function AvailabilityHubContent() {
   const router = useRouter()
+  const { userProfile, addRequest, requests: globalRequests } = useGlobalApp()
   
   // Tab State
   const [activeTab, setActiveTab] = useState<"pattern" | "calendar" | "requests">("pattern")
@@ -502,6 +504,10 @@ function AvailabilityHubContent() {
     const startDate = new Date(request.startDate)
     const endDate = new Date(request.endDate)
     
+    // Look up approval status from global state
+    const globalRequest = globalRequests.find(r => r.id === request.id)
+    const approvalStatus = globalRequest?.status || request.status
+    
     const statusColors = {
       pending: "bg-yellow-50 text-yellow-700 border-yellow-200",
       approved: "bg-green-50 text-green-700 border-green-200",
@@ -530,8 +536,8 @@ function AvailabilityHubContent() {
       day: startDate.getDate().toString(),
       title: request.type.toUpperCase(),
       duration,
-      status: request.status.charAt(0).toUpperCase() + request.status.slice(1),
-      statusColor: statusColors[request.status]
+      status: approvalStatus.charAt(0).toUpperCase() + approvalStatus.slice(1),
+      statusColor: statusColors[approvalStatus]
     }
   })
 
@@ -550,9 +556,26 @@ function AvailabilityHubContent() {
       return
     }
     
-    // Create new time off request
-    const newRequest = {
-      id: `timeoff-${Date.now()}`,
+    // Format the detail string for display
+    const formatDetail = () => {
+      const start = new Date(startDate)
+      const end = new Date(endDate)
+      const startStr = start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      const endStr = end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+      const startTime = start.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+      const endTime = end.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+      
+      if (startStr === endStr) {
+        return `${startStr}, ${startTime}-${endTime}`
+      }
+      return `${startStr}-${endStr}`
+    }
+    
+    const requestId = `timeoff-${Date.now()}`
+    
+    // Create new time off request for local calendar display
+    const newTimeOffRequest = {
+      id: requestId,
       type: selectedType,
       startDate,
       endDate,
@@ -560,9 +583,28 @@ function AvailabilityHubContent() {
       status: 'pending' as const
     }
     
-    // Add to time off requests
-    setTimeOffRequests(prev => [...prev, newRequest])
-    console.log('✅ Time off request saved:', newRequest)
+    // Create request for global state (manager approval)
+    const newGlobalRequest = {
+      id: requestId,
+      userId: 'u1', // Current user ID
+      userName: userProfile.name,
+      type: selectedType === 'pto' ? 'PTO' as const : 'TimeOff' as const,
+      detail: formatDetail(),
+      date: startDate.split('T')[0],
+      status: 'pending' as const
+    }
+    
+    // Add to local time off requests (for calendar display)
+    setTimeOffRequests(prev => [...prev, newTimeOffRequest])
+    
+    // Add to global requests (for manager approval)
+    addRequest(newGlobalRequest)
+    
+    console.log('✅ Time off request saved:', newTimeOffRequest)
+    console.log('📨 Request sent to manager:', newGlobalRequest)
+    
+    // Show success message
+    alert("Request sent to Manager for approval!")
     
     // Reset and close
     setIsRequestSheetOpen(false)

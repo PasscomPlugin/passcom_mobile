@@ -91,12 +91,23 @@ export type Message =
   | ContactMessage
   | LinkMessage
 
+export interface Request {
+  id: string
+  userId: string
+  userName: string
+  type: 'PTO' | 'Swap' | 'TimeOff'
+  detail: string
+  date: string
+  status: 'pending' | 'approved' | 'denied'
+}
+
 interface GlobalContextType {
   shiftState: ShiftState
   tasks: Task[]
   chats: Record<string, Message[]>
   profilePhoto: string | null
   userProfile: UserProfile
+  requests: Request[]
   clockIn: () => void
   clockOut: () => void
   toggleTask: (id: string) => void
@@ -106,6 +117,8 @@ interface GlobalContextType {
   sendMessage: (userId: string, message: Message) => void
   setProfilePhoto: (photo: string | null) => void
   updateUserProfile: (profile: Partial<UserProfile>) => void
+  addRequest: (request: Request) => void
+  updateRequestStatus: (id: string, newStatus: 'approved' | 'denied') => void
 }
 
 // Create Context
@@ -206,6 +219,28 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
     address: '123 Main St, New York, NY 10001'
   })
   
+  // Requests with initial mock data
+  const [requests, setRequests] = useState<Request[]>([
+    {
+      id: 'req-1',
+      userId: 'u3',
+      userName: 'Mike Chen',
+      type: 'Swap',
+      detail: 'Fri 5pm → Sat 2pm',
+      date: '2026-01-10',
+      status: 'pending'
+    },
+    {
+      id: 'req-2',
+      userId: 'u2',
+      userName: 'Sarah Mitchell',
+      type: 'PTO',
+      detail: 'Jan 15-17',
+      date: '2026-01-15',
+      status: 'pending'
+    }
+  ])
+  
   // Load profile data from localStorage on mount
   useEffect(() => {
     const savedPhoto = localStorage.getItem('profilePhoto')
@@ -293,12 +328,29 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
     }))
   }
   
+  // Add Request
+  const addRequest = (request: Request) => {
+    setRequests(prev => [...prev, request])
+    console.log('📝 Request added:', request)
+  }
+  
+  // Update Request Status
+  const updateRequestStatus = (id: string, newStatus: 'approved' | 'denied') => {
+    setRequests(prev =>
+      prev.map(req =>
+        req.id === id ? { ...req, status: newStatus } : req
+      )
+    )
+    console.log(`✅ Request ${id} ${newStatus}`)
+  }
+  
   const value: GlobalContextType = {
     shiftState,
     tasks,
     chats,
     profilePhoto,
     userProfile,
+    requests,
     clockIn,
     clockOut,
     toggleTask,
@@ -307,7 +359,9 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
     deleteTask,
     sendMessage,
     setProfilePhoto,
-    updateUserProfile
+    updateUserProfile,
+    addRequest,
+    updateRequestStatus
   }
   
   return (
