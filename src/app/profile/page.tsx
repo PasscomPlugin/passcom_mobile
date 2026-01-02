@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation"
 import { ArrowLeft, ChevronRight, User, Shirt, Award, FileText, DollarSign, Phone, Bell, LogOut, Camera, Mail, MapPin, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MediaCropEditor } from "@/components/MediaCropEditor"
+import { useGlobalApp } from "@/context/GlobalContext"
 
 function ProfileContent() {
   const router = useRouter()
   const photoInputRef = useRef<HTMLInputElement>(null)
-  const [profilePhoto, setProfilePhoto] = useState<string | null>(null)
+  const { profilePhoto, setProfilePhoto } = useGlobalApp()
   
   // Editor state
   const [isEditorOpen, setIsEditorOpen] = useState(false)

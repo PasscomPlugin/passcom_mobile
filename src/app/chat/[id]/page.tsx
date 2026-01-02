@@ -34,7 +34,7 @@ function ChatConversationContent() {
   const router = useRouter()
   const params = useParams()
   const currentUserId = params.id as string
-  const { chats, sendMessage } = useGlobalApp()
+  const { chats, sendMessage, profilePhoto } = useGlobalApp()
   
   const [messageText, setMessageText] = useState("")
   const [isAttachmentSheetOpen, setIsAttachmentSheetOpen] = useState(false)
@@ -381,10 +381,19 @@ function ChatConversationContent() {
               message.sender === "me" ? "flex-row-reverse" : "flex-row"
             }`}
           >
-            {/* Avatar (only for incoming messages) */}
+            {/* Avatar for both incoming and outgoing messages */}
             {message.sender === "them" && message.senderAvatar && (
               <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center shrink-0">
                 <span className="text-white text-xs font-bold">{message.senderAvatar}</span>
+              </div>
+            )}
+            {message.sender === "me" && (
+              <div className="h-8 w-8 rounded-full bg-blue-500 flex items-center justify-center shrink-0 overflow-hidden">
+                {profilePhoto ? (
+                  <img src={profilePhoto} alt="Me" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-white text-xs font-bold">JM</span>
+                )}
               </div>
             )}
 

@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, ReactNode } from "react"
 
 // Types
 export interface Task {
@@ -88,6 +88,7 @@ interface GlobalContextType {
   shiftState: ShiftState
   tasks: Task[]
   chats: Record<string, Message[]>
+  profilePhoto: string | null
   clockIn: () => void
   clockOut: () => void
   toggleTask: (id: string) => void
@@ -95,6 +96,7 @@ interface GlobalContextType {
   updateTask: (id: string, updates: Partial<Task>) => void
   deleteTask: (id: string) => void
   sendMessage: (userId: string, message: Message) => void
+  setProfilePhoto: (photo: string | null) => void
 }
 
 // Create Context
@@ -184,6 +186,27 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
   // Chat messages keyed by user ID
   const [chats, setChats] = useState<Record<string, Message[]>>({})
   
+  // Profile photo with localStorage persistence
+  const [profilePhoto, setProfilePhotoState] = useState<string | null>(null)
+  
+  // Load profile photo from localStorage on mount
+  useEffect(() => {
+    const savedPhoto = localStorage.getItem('profilePhoto')
+    if (savedPhoto) {
+      setProfilePhotoState(savedPhoto)
+    }
+  }, [])
+  
+  // Save profile photo to localStorage and update state
+  const setProfilePhoto = (photo: string | null) => {
+    setProfilePhotoState(photo)
+    if (photo) {
+      localStorage.setItem('profilePhoto', photo)
+    } else {
+      localStorage.removeItem('profilePhoto')
+    }
+  }
+  
   // Clock In
   const clockIn = () => {
     setShiftState({
@@ -245,13 +268,15 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
     shiftState,
     tasks,
     chats,
+    profilePhoto,
     clockIn,
     clockOut,
     toggleTask,
     addTask,
     updateTask,
     deleteTask,
-    sendMessage
+    sendMessage,
+    setProfilePhoto
   }
   
   return (
