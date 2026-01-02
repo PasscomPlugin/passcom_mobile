@@ -1,15 +1,42 @@
 "use client"
 
-import { Suspense } from "react"
+import { Suspense, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, ChevronRight, User, Shirt, Award, FileText, DollarSign, Phone, Bell, LogOut } from "lucide-react"
+import { ArrowLeft, ChevronRight, User, Shirt, Award, FileText, DollarSign, Phone, Bell, LogOut, Camera, Mail, MapPin, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 function ProfileContent() {
   const router = useRouter()
+  const photoInputRef = useRef<HTMLInputElement>(null)
+  const [profilePhoto, setProfilePhoto] = useState<string | null>(null)
+
+  // Handle photo selection
+  const handlePhotoSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Create local URL for the selected file
+    const url = URL.createObjectURL(file)
+    setProfilePhoto(url)
+    
+    // TODO: Add crop functionality here
+    // For now, just set the photo directly
+    
+    // Reset input
+    event.target.value = ""
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Hidden File Input */}
+      <input
+        type="file"
+        ref={photoInputRef}
+        onChange={handlePhotoSelect}
+        accept="image/*"
+        className="hidden"
+      />
+
       {/* Header */}
       <div className="sticky top-0 bg-white border-b px-4 py-2 flex items-center gap-2 z-10 h-14">
         <button 
@@ -24,9 +51,20 @@ function ProfileContent() {
       {/* Hero Section */}
       <div className="bg-white border-b px-4 py-8 text-center">
         {/* Avatar */}
-        <div className="w-24 h-24 rounded-full bg-blue-500 flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4">
-          JM
-        </div>
+        <button
+          onClick={() => photoInputRef.current?.click()}
+          className="relative w-24 h-24 rounded-full bg-blue-500 flex items-center justify-center text-white text-3xl font-bold mx-auto mb-4 hover:opacity-90 transition-opacity group"
+        >
+          {profilePhoto ? (
+            <img src={profilePhoto} alt="Profile" className="w-full h-full rounded-full object-cover" />
+          ) : (
+            "JM"
+          )}
+          {/* Camera Icon Overlay */}
+          <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <Camera className="h-8 w-8 text-white" strokeWidth={2} />
+          </div>
+        </button>
         
         {/* Name */}
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Jim McKelvey</h1>
@@ -82,9 +120,69 @@ function ProfileContent() {
         </div>
       </div>
 
+      {/* Section: Personal Information */}
+      <div className="mt-6">
+        <h2 className="px-4 mb-2 text-xs font-bold text-gray-500 uppercase tracking-wide">Personal Information</h2>
+        <div className="bg-white border-y border-gray-100 divide-y divide-gray-100">
+          {/* Full Name */}
+          <div className="flex items-center justify-between px-4 py-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center">
+                <User className="h-5 w-5 text-blue-600" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Full Name</div>
+                <div className="text-base font-medium text-gray-900">Jim McKelvey</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Email */}
+          <div className="flex items-center justify-between px-4 py-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-purple-50 flex items-center justify-center">
+                <Mail className="h-5 w-5 text-purple-600" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Email</div>
+                <div className="text-base font-medium text-gray-900">jim@example.com</div>
+              </div>
+            </div>
+            <CheckCircle className="h-5 w-5 text-green-500" />
+          </div>
+
+          {/* Phone */}
+          <div className="flex items-center justify-between px-4 py-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-green-50 flex items-center justify-center">
+                <Phone className="h-5 w-5 text-green-600" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Phone</div>
+                <div className="text-base font-medium text-gray-900">(555) 123-4567</div>
+              </div>
+            </div>
+            <CheckCircle className="h-5 w-5 text-green-500" />
+          </div>
+
+          {/* Address */}
+          <div className="flex items-center justify-between px-4 py-4">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full bg-orange-50 flex items-center justify-center">
+                <MapPin className="h-5 w-5 text-orange-600" />
+              </div>
+              <div>
+                <div className="text-sm text-gray-500">Address</div>
+                <div className="text-base font-medium text-gray-900">123 Main St, New York, NY 10001</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Section: Work & Skills */}
       <div className="mt-6">
-        <h2 className="px-4 mb-2 text-xs font-bold text-gray-500 uppercase tracking-wide">Qualifications</h2>
+        <h2 className="px-4 mb-2 text-xs font-bold text-gray-500 uppercase tracking-wide">Skills</h2>
         <div className="bg-white border-y border-gray-100 px-4 py-4">
           <div className="flex flex-wrap gap-2">
             <span className="px-3 py-1.5 bg-blue-50 border border-blue-200 text-blue-700 rounded-full text-sm font-medium">
