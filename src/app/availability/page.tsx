@@ -182,11 +182,8 @@ function AvailabilityHubContent() {
   }
 
   // Handle mouse/touch move over grid
-  const handlePointerMove = (event: MouseEvent | TouchEvent) => {
+  const handlePointerMove = (event: PointerEvent) => {
     if (!isPainting) return
-
-    // Prevent scrolling while painting
-    event.preventDefault()
 
     const target = event.target as HTMLElement
     
@@ -203,19 +200,16 @@ function AvailabilityHubContent() {
     }
 
     // Check for auto-scroll
-    const clientY = 'clientY' in event ? event.clientY : event.touches?.[0]?.clientY
-    if (clientY) {
-      const windowHeight = window.innerHeight
-      const topEdgeZone = 200 // px from top (larger to account for headers)
-      const bottomEdgeZone = 100 // px from bottom
+    const windowHeight = window.innerHeight
+    const topEdgeZone = 200 // px from top (larger to account for headers)
+    const bottomEdgeZone = 100 // px from bottom
 
-      if (clientY < topEdgeZone) {
-        startAutoScroll('up')
-      } else if (clientY > windowHeight - bottomEdgeZone) {
-        startAutoScroll('down')
-      } else {
-        stopAutoScroll()
-      }
+    if (event.clientY < topEdgeZone) {
+      startAutoScroll('up')
+    } else if (event.clientY > windowHeight - bottomEdgeZone) {
+      startAutoScroll('down')
+    } else {
+      stopAutoScroll()
     }
   }
 
@@ -254,21 +248,15 @@ function AvailabilityHubContent() {
   useEffect(() => {
     if (!isPainting) return
 
-    const handleGlobalMouseMove = (e: MouseEvent) => handlePointerMove(e)
-    const handleGlobalTouchMove = (e: TouchEvent) => handlePointerMove(e)
-    const handleGlobalMouseUp = () => handlePaintEnd()
-    const handleGlobalTouchEnd = () => handlePaintEnd()
+    const handleGlobalPointerMove = (e: PointerEvent) => handlePointerMove(e)
+    const handleGlobalPointerUp = () => handlePaintEnd()
 
-    document.addEventListener('mousemove', handleGlobalMouseMove)
-    document.addEventListener('touchmove', handleGlobalTouchMove, { passive: false })
-    document.addEventListener('mouseup', handleGlobalMouseUp)
-    document.addEventListener('touchend', handleGlobalTouchEnd)
+    document.addEventListener('pointermove', handleGlobalPointerMove)
+    document.addEventListener('pointerup', handleGlobalPointerUp)
 
     return () => {
-      document.removeEventListener('mousemove', handleGlobalMouseMove)
-      document.removeEventListener('touchmove', handleGlobalTouchMove)
-      document.removeEventListener('mouseup', handleGlobalMouseUp)
-      document.removeEventListener('touchend', handleGlobalTouchEnd)
+      document.removeEventListener('pointermove', handleGlobalPointerMove)
+      document.removeEventListener('pointerup', handleGlobalPointerUp)
       stopAutoScroll()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -484,11 +472,8 @@ function AvailabilityHubContent() {
   }
   
   // Handle calendar selection move
-  const handleCalendarSelectionMove = (event: MouseEvent | TouchEvent) => {
+  const handleCalendarSelectionMove = (event: PointerEvent) => {
     if (!isSelectingTime) return
-
-    // Prevent scrolling while selecting
-    event.preventDefault()
 
     const target = event.target as HTMLElement
     const cellElement = target.getAttribute ? target.closest('[data-day][data-slot]') as HTMLElement : null
@@ -507,21 +492,15 @@ function AvailabilityHubContent() {
   useEffect(() => {
     if (!isSelectingTime) return
 
-    const handleGlobalMouseMove = (e: MouseEvent) => handleCalendarSelectionMove(e)
-    const handleGlobalTouchMove = (e: TouchEvent) => handleCalendarSelectionMove(e)
-    const handleGlobalMouseUp = () => handleSelectionEnd()
-    const handleGlobalTouchEnd = () => handleSelectionEnd()
+    const handleGlobalPointerMove = (e: PointerEvent) => handleCalendarSelectionMove(e)
+    const handleGlobalPointerUp = () => handleSelectionEnd()
 
-    document.addEventListener('mousemove', handleGlobalMouseMove)
-    document.addEventListener('touchmove', handleGlobalTouchMove, { passive: false })
-    document.addEventListener('mouseup', handleGlobalMouseUp)
-    document.addEventListener('touchend', handleGlobalTouchEnd)
+    document.addEventListener('pointermove', handleGlobalPointerMove)
+    document.addEventListener('pointerup', handleGlobalPointerUp)
     
     return () => {
-      document.removeEventListener('mousemove', handleGlobalMouseMove)
-      document.removeEventListener('touchmove', handleGlobalTouchMove)
-      document.removeEventListener('mouseup', handleGlobalMouseUp)
-      document.removeEventListener('touchend', handleGlobalTouchEnd)
+      document.removeEventListener('pointermove', handleGlobalPointerMove)
+      document.removeEventListener('pointerup', handleGlobalPointerUp)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isSelectingTime, selectionStart, selectionEnd])
@@ -760,7 +739,7 @@ function AvailabilityHubContent() {
             {/* Grid */}
             <div 
               ref={scrollViewRef}
-              className="flex-1 overflow-auto"
+              className="flex-1 overflow-auto touch-none"
             >
               {visibleSlots.map((slotIndex) => (
                 <div key={slotIndex} className="flex">
@@ -794,23 +773,18 @@ function AvailabilityHubContent() {
                         }}
                         data-day={dayIndex}
                         data-slot={slotIndex}
-                        onMouseDown={(e) => {
-                          e.preventDefault()
+                        onPointerDown={(e) => {
                           if (!isDisabled) {
+                            e.preventDefault()
+                            const target = e.currentTarget as HTMLElement
+                            target.setPointerCapture(e.pointerId)
                             setIsPainting(true)
                             handleCellInteraction(dayIndex, slotIndex, true)
                           }
                         }}
-                        onMouseEnter={() => {
+                        onPointerEnter={() => {
                           if (isPainting && !isDisabled) {
                             handleCellInteraction(dayIndex, slotIndex)
-                          }
-                        }}
-                        onTouchStart={(e) => {
-                          e.preventDefault()
-                          if (!isDisabled) {
-                            setIsPainting(true)
-                            handleCellInteraction(dayIndex, slotIndex, true)
                           }
                         }}
                       >
@@ -882,7 +856,7 @@ function AvailabilityHubContent() {
             {/* Grid (Same as Pattern) */}
             <div 
               ref={calendarScrollViewRef}
-              className="flex-1 overflow-auto"
+              className="flex-1 overflow-auto touch-none"
             >
               {visibleSlots.map((slotIndex) => (
                 <div key={slotIndex} className="flex">
@@ -921,23 +895,18 @@ function AvailabilityHubContent() {
                         }}
                         data-day={dayIndex}
                         data-slot={slotIndex}
-                        onMouseDown={(e) => {
-                          e.preventDefault()
+                        onPointerDown={(e) => {
                           if (!isDisabled) {
+                            e.preventDefault()
+                            const target = e.currentTarget as HTMLElement
+                            target.setPointerCapture(e.pointerId)
                             setIsSelectingTime(true)
                             handleCalendarSelection(dayIndex, slotIndex, true)
                           }
                         }}
-                        onMouseEnter={() => {
+                        onPointerEnter={() => {
                           if (isSelectingTime && !isDisabled) {
                             handleCalendarSelection(dayIndex, slotIndex, false)
-                          }
-                        }}
-                        onTouchStart={(e) => {
-                          e.preventDefault()
-                          if (!isDisabled) {
-                            setIsSelectingTime(true)
-                            handleCalendarSelection(dayIndex, slotIndex, true)
                           }
                         }}
                       >
