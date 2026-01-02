@@ -4,26 +4,42 @@ import { Suspense, useRef, useState } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, ChevronRight, User, Shirt, Award, FileText, DollarSign, Phone, Bell, LogOut, Camera, Mail, MapPin, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { MediaCropEditor } from "@/components/MediaCropEditor"
 
 function ProfileContent() {
   const router = useRouter()
   const photoInputRef = useRef<HTMLInputElement>(null)
   const [profilePhoto, setProfilePhoto] = useState<string | null>(null)
+  
+  // Editor state
+  const [isEditorOpen, setIsEditorOpen] = useState(false)
+  const [selectedImage, setSelectedImage] = useState<string | null>(null)
 
-  // Handle photo selection
+  // Handle photo selection - open editor
   const handlePhotoSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
 
     // Create local URL for the selected file
     const url = URL.createObjectURL(file)
-    setProfilePhoto(url)
-    
-    // TODO: Add crop functionality here
-    // For now, just set the photo directly
+    setSelectedImage(url)
+    setIsEditorOpen(true)
     
     // Reset input
     event.target.value = ""
+  }
+
+  // Handle crop complete
+  const handleCropComplete = (croppedImageUrl: string) => {
+    setProfilePhoto(croppedImageUrl)
+    setIsEditorOpen(false)
+    setSelectedImage(null)
+  }
+
+  // Handle crop cancel
+  const handleCropCancel = () => {
+    setIsEditorOpen(false)
+    setSelectedImage(null)
   }
 
   return (
@@ -36,6 +52,18 @@ function ProfileContent() {
         accept="image/*"
         className="hidden"
       />
+
+      {/* Photo Editor Modal */}
+      {selectedImage && (
+        <MediaCropEditor
+          isOpen={isEditorOpen}
+          onClose={handleCropCancel}
+          imageSrc={selectedImage}
+          onCropComplete={handleCropComplete}
+          cropShape="round"
+          aspect={1}
+        />
+      )}
 
       {/* Header */}
       <div className="sticky top-0 bg-white border-b px-4 py-2 flex items-center gap-2 z-10 h-14">

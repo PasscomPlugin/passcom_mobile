@@ -11,6 +11,8 @@ interface MediaCropEditorProps {
   onClose: () => void
   imageSrc: string
   onCropComplete: (croppedImageUrl: string) => void
+  cropShape?: 'rect' | 'round'
+  aspect?: number
 }
 
 export function MediaCropEditor({
@@ -18,6 +20,8 @@ export function MediaCropEditor({
   onClose,
   imageSrc,
   onCropComplete,
+  cropShape = 'rect',
+  aspect = undefined,
 }: MediaCropEditorProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
@@ -77,7 +81,8 @@ export function MediaCropEditor({
           crop={crop}
           zoom={zoom}
           rotation={0}
-          aspect={undefined} // Free-form cropping
+          aspect={aspect}
+          cropShape={cropShape}
           onCropChange={setCrop}
           onZoomChange={setZoom}
           onCropComplete={onCropCompleteCallback}
