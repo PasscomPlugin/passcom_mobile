@@ -298,16 +298,19 @@ function ProfileContent() {
 
           {/* Switch to Manager Mode */}
           <button 
-            onClick={() => console.log('Switch to Manager Mode')}
-            className="flex items-center justify-between px-4 py-4 w-full hover:bg-blue-50 transition-colors"
+            onClick={() => router.push('/admin')}
+            className="flex items-center justify-between px-4 py-4 w-full hover:bg-purple-50 transition-colors border-t-2 border-purple-100"
           >
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-blue-50 flex items-center justify-center">
-                <Award className="h-5 w-5 text-blue-600" />
+              <div className="h-12 w-12 rounded-full bg-gradient-to-br from-purple-500 to-blue-600 flex items-center justify-center shadow-md">
+                <Award className="h-6 w-6 text-white" strokeWidth={2.5} />
               </div>
-              <span className="text-base font-semibold text-blue-600">Switch to Manager Mode</span>
+              <div className="text-left">
+                <span className="text-base font-bold text-purple-600 block">Switch to Manager View</span>
+                <span className="text-xs text-gray-500 mt-0.5 block">Dashboard, team, schedule & more</span>
+              </div>
             </div>
-            <ChevronRight className="h-5 w-5 text-blue-600" />
+            <ChevronRight className="h-5 w-5 text-purple-600" strokeWidth={2.5} />
           </button>
 
           {/* Log Out */}
