@@ -4,7 +4,7 @@ import { Suspense, useState, useRef, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { ArrowLeft, ChevronLeft, ChevronRight, Repeat, Calendar as CalendarIcon, List, Sun, Thermometer, CircleSlash, Star, Plus } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import type { WeeklyAvailability } from '@/types/availability'
+import type { WeeklyAvailability, SlotStatus } from '@/types/availability'
 import { createEmptySchedule, SLOT_STATUS, DAYS_OF_WEEK } from '@/types/availability'
 import { useGlobalApp } from "@/context/GlobalContext"
 
@@ -117,7 +117,7 @@ function AvailabilityHubContent() {
   // ===== PATTERN TAB FUNCTIONS =====
   
   // Update a specific slot
-  const updateSlot = (dayIndex: number, slotIndex: number, newStatus: number) => {
+  const updateSlot = (dayIndex: number, slotIndex: number, newStatus: SlotStatus) => {
     const newAvailability = [...availability]
     newAvailability[dayIndex].slots[slotIndex].status = newStatus
     setAvailability(newAvailability)

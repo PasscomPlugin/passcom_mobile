@@ -8,7 +8,8 @@ interface User {
   name: string
   initials: string
   avatarUrl?: string | null
-  color: string
+  color?: string
+  email?: string
 }
 
 interface ActiveFilter {

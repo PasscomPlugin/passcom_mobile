@@ -17,9 +17,9 @@ interface SortStatusSheetProps {
   activeFilters: string[]
   onApplyFilters: (selectedStatuses: string[]) => void
   counts?: Record<string, number>
-  pendingFilters: ActiveFilter[]
-  calculateMatchingTasks: (filters: ActiveFilter[]) => any[]
-  allDays: any[]
+  pendingFilters?: ActiveFilter[]
+  calculateMatchingTasks?: (filters: ActiveFilter[]) => any[]
+  allDays?: any[]
 }
 
 export default function SortStatusSheet({
@@ -29,9 +29,8 @@ export default function SortStatusSheet({
   activeFilters,
   onApplyFilters,
   counts = {},
-  pendingFilters,
-  calculateMatchingTasks,
-  allDays,
+  pendingFilters = [],
+  calculateMatchingTasks = () => [],
 }: SortStatusSheetProps) {
   const [tempSelected, setTempSelected] = useState<string[]>(activeFilters)
 
