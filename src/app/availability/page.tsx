@@ -185,6 +185,9 @@ function AvailabilityHubContent() {
   const handlePointerMove = (event: MouseEvent | TouchEvent) => {
     if (!isPainting) return
 
+    // Prevent scrolling while painting
+    event.preventDefault()
+
     const target = event.target as HTMLElement
     
     // Find the cell element (might be the target itself or a parent)
@@ -480,17 +483,43 @@ function AvailabilityHubContent() {
     return { type: 'unavailable', color: '#ffffff', textColor: 'black' }
   }
   
+  // Handle calendar selection move
+  const handleCalendarSelectionMove = (event: MouseEvent | TouchEvent) => {
+    if (!isSelectingTime) return
+
+    // Prevent scrolling while selecting
+    event.preventDefault()
+
+    const target = event.target as HTMLElement
+    const cellElement = target.getAttribute ? target.closest('[data-day][data-slot]') as HTMLElement : null
+    
+    if (cellElement) {
+      const dayIndex = cellElement.getAttribute('data-day')
+      const slotIndex = cellElement.getAttribute('data-slot')
+
+      if (dayIndex !== null && slotIndex !== null) {
+        handleCalendarSelection(parseInt(dayIndex), parseInt(slotIndex), false)
+      }
+    }
+  }
+
   // Add calendar selection listeners
   useEffect(() => {
     if (!isSelectingTime) return
 
+    const handleGlobalMouseMove = (e: MouseEvent) => handleCalendarSelectionMove(e)
+    const handleGlobalTouchMove = (e: TouchEvent) => handleCalendarSelectionMove(e)
     const handleGlobalMouseUp = () => handleSelectionEnd()
     const handleGlobalTouchEnd = () => handleSelectionEnd()
 
+    document.addEventListener('mousemove', handleGlobalMouseMove)
+    document.addEventListener('touchmove', handleGlobalTouchMove, { passive: false })
     document.addEventListener('mouseup', handleGlobalMouseUp)
     document.addEventListener('touchend', handleGlobalTouchEnd)
     
     return () => {
+      document.removeEventListener('mousemove', handleGlobalMouseMove)
+      document.removeEventListener('touchmove', handleGlobalTouchMove)
       document.removeEventListener('mouseup', handleGlobalMouseUp)
       document.removeEventListener('touchend', handleGlobalTouchEnd)
     }
