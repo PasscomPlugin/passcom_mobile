@@ -62,7 +62,13 @@ function SettingsContent() {
             return (
               <button
                 key={item.id}
-                onClick={() => console.log(`Navigate to ${item.id}`)}
+                onClick={() => {
+                  if (item.id === 'notifications') {
+                    router.push('/notification-settings')
+                  } else {
+                    console.log(`Navigate to ${item.id}`)
+                  }
+                }}
                 className="w-full flex items-center gap-3 px-4 py-4 hover:bg-gray-50 transition-colors text-left"
               >
                 <div className="h-10 w-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
