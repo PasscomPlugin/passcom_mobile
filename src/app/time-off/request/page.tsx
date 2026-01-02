@@ -6,6 +6,7 @@ import { ArrowLeft, Calendar, AlertCircle, Sun, Thermometer, CircleSlash, MoreHo
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { TimeOffType, calculateDaysBetween } from "@/types/timeOff"
+import DateRangeModal from "@/components/DateRangeModal"
 
 const timeOffTypes = [
   { id: 'vacation' as TimeOffType, icon: Sun, label: 'PTO', color: 'bg-blue-50 border-blue-200 text-blue-700' },
@@ -48,10 +49,10 @@ function RequestTimeOffContent() {
   }
 
   // Handle date range selection
-  const handleDateRangeApply = (range: { start: Date; end: Date } | null) => {
+  const handleDateRangeApply = (range: { startDate: string; endDate: string } | null) => {
     if (range) {
-      setStartDate(range.start)
-      setEndDate(range.end)
+      setStartDate(new Date(range.startDate))
+      setEndDate(new Date(range.endDate))
       if (errors.startDate || errors.endDate) {
         setErrors({ ...errors, startDate: '', endDate: '' })
       }
@@ -394,7 +395,6 @@ function RequestTimeOffContent() {
         isVisible={isDateModalOpen}
         onClose={() => setIsDateModalOpen(false)}
         onApply={handleDateRangeApply}
-        initialRange={startDate && endDate ? { start: startDate, end: endDate } : null}
       />
     </div>
   )

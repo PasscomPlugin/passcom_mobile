@@ -293,7 +293,7 @@ export function GlobalProvider({ children }: { children: ReactNode }) {
     setTasks(prev => {
       const updated = prev.map(task =>
         String(task.id) === String(id)
-          ? { ...task, status: task.status === 'done' ? 'open' : 'done' }
+          ? { ...task, status: (task.status === 'done' ? 'open' : 'done') as Task['status'] }
           : task
       )
       console.log('✅ Tasks updated in context. New task list:', updated)

@@ -114,7 +114,7 @@ function ChatConversationContent() {
       aspectRatio: 1.5,
       time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
     }
-    setMessages([...messages, newMessage])
+    sendMessage(currentUserId, newMessage)
     setIsAttachmentSheetOpen(false)
   }
 
@@ -127,7 +127,7 @@ function ChatConversationContent() {
       aspectRatio: 1,
       time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
     }
-    setMessages([...messages, newMessage])
+    sendMessage(currentUserId, newMessage)
     setIsAttachmentSheetOpen(false)
   }
 
@@ -140,7 +140,7 @@ function ChatConversationContent() {
       fileSize: "2.4 MB",
       time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
     }
-    setMessages([...messages, newMessage])
+    sendMessage(currentUserId, newMessage)
     setIsAttachmentSheetOpen(false)
   }
 
@@ -153,7 +153,7 @@ function ChatConversationContent() {
       mapImageUrl: "https://placehold.co/400x200/10b981/ffffff/png?text=Map",
       time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
     }
-    setMessages([...messages, newMessage])
+    sendMessage(currentUserId, newMessage)
     setIsAttachmentSheetOpen(false)
   }
 
@@ -166,7 +166,7 @@ function ChatConversationContent() {
       phoneNumber: "(555) 123-4567",
       time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
     }
-    setMessages([...messages, newMessage])
+    sendMessage(currentUserId, newMessage)
     setIsAttachmentSheetOpen(false)
   }
 
@@ -180,7 +180,7 @@ function ChatConversationContent() {
       previewImageUrl: "https://placehold.co/400x200/6366f1/ffffff/png?text=Preview",
       time: new Date().toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }),
     }
-    setMessages([...messages, newMessage])
+    sendMessage(currentUserId, newMessage)
     setIsAttachmentSheetOpen(false)
   }
 

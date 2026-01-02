@@ -285,8 +285,7 @@ function TimeClockContent() {
     // Reset after success
     setTimeout(() => {
       setShowWizard(false)
-      setIsClockedIn(false)
-      setElapsedTime(0)
+      setElapsedTimeString("00:00:00")
       setTimeEntry({
         id: `entry-${Date.now()}`,
         scheduledStart: "9:00 AM",
