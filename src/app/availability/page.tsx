@@ -73,6 +73,7 @@ function AvailabilityHubContent() {
   const scrollViewRef = useRef<HTMLDivElement>(null)
   const paintedCellsRef = useRef<Set<string>>(new Set())
   const autoScrollIntervalRef = useRef<any>(null)
+  const lastPaintedCellRef = useRef<string | null>(null)
   
   // Calendar State (Weekly view)
   const [currentWeekStart, setCurrentWeekStart] = useState(() => {
@@ -91,6 +92,7 @@ function AvailabilityHubContent() {
   const [selectionEnd, setSelectionEnd] = useState<{day: number, slot: number} | null>(null)
   const [selectedCells, setSelectedCells] = useState<Set<string>>(new Set())
   const calendarScrollViewRef = useRef<HTMLDivElement>(null)
+  const lastSelectedCellRef = useRef<string | null>(null)
   
   // Sheet State
   const [isRequestSheetOpen, setIsRequestSheetOpen] = useState(false)
@@ -182,20 +184,31 @@ function AvailabilityHubContent() {
   }
 
   // Handle mouse/touch move over grid
-  const handlePointerMove = (event: PointerEvent) => {
+  const handlePointerMove = (event: React.PointerEvent) => {
     if (!isPainting) return
+    event.preventDefault() // Extra safety
 
-    const target = event.target as HTMLElement
+    // Use hit testing to find the element under the pointer
+    const target = document.elementFromPoint(event.clientX, event.clientY) as HTMLElement
     
-    // Find the cell element (might be the target itself or a parent)
-    const cellElement = target.getAttribute ? target.closest('[data-day][data-slot]') as HTMLElement : null
-    
-    if (cellElement) {
-      const dayIndex = cellElement.getAttribute('data-day')
-      const slotIndex = cellElement.getAttribute('data-slot')
-
-      if (dayIndex !== null && slotIndex !== null) {
-        handleCellInteraction(parseInt(dayIndex), parseInt(slotIndex))
+    if (target) {
+      // Find the cell element (might be the target itself or a parent)
+      const cellElement = target.closest('[data-cell-id]') as HTMLElement
+      
+      if (cellElement) {
+        const cellId = cellElement.getAttribute('data-cell-id')
+        
+        // Only process if this is a different cell than the last one
+        if (cellId && cellId !== lastPaintedCellRef.current) {
+          const [dayStr, slotStr] = cellId.split('-')
+          const dayIndex = parseInt(dayStr)
+          const slotIndex = parseInt(slotStr)
+          
+          if (!isNaN(dayIndex) && !isNaN(slotIndex)) {
+            handleCellInteraction(dayIndex, slotIndex)
+            lastPaintedCellRef.current = cellId
+          }
+        }
       }
     }
 
@@ -216,6 +229,7 @@ function AvailabilityHubContent() {
   // Handle paint end
   const handlePaintEnd = () => {
     setIsPainting(false)
+    lastPaintedCellRef.current = null
     stopAutoScroll()
     paintedCellsRef.current.clear()
   }
@@ -245,23 +259,6 @@ function AvailabilityHubContent() {
   }
 
   // Add global mouse/touch listeners
-  useEffect(() => {
-    if (!isPainting) return
-
-    const handleGlobalPointerMove = (e: PointerEvent) => handlePointerMove(e)
-    const handleGlobalPointerUp = () => handlePaintEnd()
-
-    document.addEventListener('pointermove', handleGlobalPointerMove)
-    document.addEventListener('pointerup', handleGlobalPointerUp)
-
-    return () => {
-      document.removeEventListener('pointermove', handleGlobalPointerMove)
-      document.removeEventListener('pointerup', handleGlobalPointerUp)
-      stopAutoScroll()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPainting])
-
   // Render slots from 7 AM to 10 PM to cover all business hours
   const startSlot = 14 // 7 AM (covers weekday 8 AM start)
   const endSlot = 44   // 10 PM (covers weekend 10 PM end)
@@ -361,6 +358,7 @@ function AvailabilityHubContent() {
     setSelectionStart(null)
     setSelectionEnd(null)
     setSelectedCells(new Set())
+    lastSelectedCellRef.current = null
   }
   
   // Navigate weeks
@@ -472,38 +470,34 @@ function AvailabilityHubContent() {
   }
   
   // Handle calendar selection move
-  const handleCalendarSelectionMove = (event: PointerEvent) => {
+  const handleCalendarSelectionMove = (event: React.PointerEvent) => {
     if (!isSelectingTime) return
+    event.preventDefault() // Extra safety
 
-    const target = event.target as HTMLElement
-    const cellElement = target.getAttribute ? target.closest('[data-day][data-slot]') as HTMLElement : null
+    // Use hit testing to find the element under the pointer
+    const target = document.elementFromPoint(event.clientX, event.clientY) as HTMLElement
     
-    if (cellElement) {
-      const dayIndex = cellElement.getAttribute('data-day')
-      const slotIndex = cellElement.getAttribute('data-slot')
-
-      if (dayIndex !== null && slotIndex !== null) {
-        handleCalendarSelection(parseInt(dayIndex), parseInt(slotIndex), false)
+    if (target) {
+      // Find the cell element (might be the target itself or a parent)
+      const cellElement = target.closest('[data-cell-id]') as HTMLElement
+      
+      if (cellElement) {
+        const cellId = cellElement.getAttribute('data-cell-id')
+        
+        // Only process if this is a different cell than the last one
+        if (cellId && cellId !== lastSelectedCellRef.current) {
+          const [dayStr, slotStr] = cellId.split('-')
+          const dayIndex = parseInt(dayStr)
+          const slotIndex = parseInt(slotStr)
+          
+          if (!isNaN(dayIndex) && !isNaN(slotIndex)) {
+            handleCalendarSelection(dayIndex, slotIndex, false)
+            lastSelectedCellRef.current = cellId
+          }
+        }
       }
     }
   }
-
-  // Add calendar selection listeners
-  useEffect(() => {
-    if (!isSelectingTime) return
-
-    const handleGlobalPointerMove = (e: PointerEvent) => handleCalendarSelectionMove(e)
-    const handleGlobalPointerUp = () => handleSelectionEnd()
-
-    document.addEventListener('pointermove', handleGlobalPointerMove)
-    document.addEventListener('pointerup', handleGlobalPointerUp)
-    
-    return () => {
-      document.removeEventListener('pointermove', handleGlobalPointerMove)
-      document.removeEventListener('pointerup', handleGlobalPointerUp)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isSelectingTime, selectionStart, selectionEnd])
 
   // ===== REQUESTS TAB DATA =====
   
@@ -740,6 +734,14 @@ function AvailabilityHubContent() {
             <div 
               ref={scrollViewRef}
               className="flex-1 overflow-auto touch-none"
+              onPointerDown={(e) => {
+                setIsPainting(true)
+                lastPaintedCellRef.current = null
+                handlePointerMove(e)
+              }}
+              onPointerMove={handlePointerMove}
+              onPointerUp={handlePaintEnd}
+              onPointerLeave={handlePaintEnd}
             >
               {visibleSlots.map((slotIndex) => (
                 <div key={slotIndex} className="flex">
@@ -765,30 +767,16 @@ function AvailabilityHubContent() {
                     return (
                       <div
                         key={`${dayIndex}-${slotIndex}`}
-                        className="flex-1 border-[0.5px] border-gray-300 flex items-center justify-center cursor-pointer select-none"
+                        className="flex-1 border-[0.5px] border-gray-300 flex items-center justify-center select-none"
                         style={{ 
                           height: CELL_HEIGHT,
                           backgroundColor: getSlotColor(slot.status, dayIndex, slotIndex),
-                          opacity: isLocked ? 0.6 : isClosed ? 0.5 : 1
+                          opacity: isLocked ? 0.6 : isClosed ? 0.5 : 1,
+                          pointerEvents: isDisabled ? 'none' : 'auto'
                         }}
-                        data-day={dayIndex}
-                        data-slot={slotIndex}
-                        onPointerDown={(e) => {
-                          if (!isDisabled) {
-                            e.preventDefault()
-                            const target = e.currentTarget as HTMLElement
-                            target.setPointerCapture(e.pointerId)
-                            setIsPainting(true)
-                            handleCellInteraction(dayIndex, slotIndex, true)
-                          }
-                        }}
-                        onPointerEnter={() => {
-                          if (isPainting && !isDisabled) {
-                            handleCellInteraction(dayIndex, slotIndex)
-                          }
-                        }}
+                        data-cell-id={`${dayIndex}-${slotIndex}`}
                       >
-                        {isLocked && <span className="text-xs">🔒</span>}
+                        {isLocked && <span className="text-xs pointer-events-none">🔒</span>}
                       </div>
                     )
                   })}
@@ -857,6 +845,30 @@ function AvailabilityHubContent() {
             <div 
               ref={calendarScrollViewRef}
               className="flex-1 overflow-auto touch-none"
+              onPointerDown={(e) => {
+                setIsSelectingTime(true)
+                lastSelectedCellRef.current = null
+                // Process initial cell
+                const target = document.elementFromPoint(e.clientX, e.clientY) as HTMLElement
+                if (target) {
+                  const cellElement = target.closest('[data-cell-id]') as HTMLElement
+                  if (cellElement) {
+                    const cellId = cellElement.getAttribute('data-cell-id')
+                    if (cellId) {
+                      const [dayStr, slotStr] = cellId.split('-')
+                      const dayIndex = parseInt(dayStr)
+                      const slotIndex = parseInt(slotStr)
+                      if (!isNaN(dayIndex) && !isNaN(slotIndex)) {
+                        handleCalendarSelection(dayIndex, slotIndex, true)
+                        lastSelectedCellRef.current = cellId
+                      }
+                    }
+                  }
+                }
+              }}
+              onPointerMove={handleCalendarSelectionMove}
+              onPointerUp={handleSelectionEnd}
+              onPointerLeave={handleSelectionEnd}
             >
               {visibleSlots.map((slotIndex) => (
                 <div key={slotIndex} className="flex">
@@ -884,34 +896,20 @@ function AvailabilityHubContent() {
                     return (
                       <div
                         key={cellKey}
-                        className="flex-1 border-[0.5px] border-gray-300 flex items-center justify-center cursor-pointer select-none"
+                        className="flex-1 border-[0.5px] border-gray-300 flex items-center justify-center select-none"
                         style={{ 
                           height: CELL_HEIGHT,
                           backgroundColor: isSelected ? '#fef08a' : (isClosed ? '#eeeeee' : slotData.color),
                           opacity: isClosed ? 0.5 : 1,
                           color: slotData.textColor,
                           fontSize: '9px',
-                          fontWeight: isLocked ? 600 : 400
+                          fontWeight: isLocked ? 600 : 400,
+                          pointerEvents: isDisabled ? 'none' : 'auto'
                         }}
-                        data-day={dayIndex}
-                        data-slot={slotIndex}
-                        onPointerDown={(e) => {
-                          if (!isDisabled) {
-                            e.preventDefault()
-                            const target = e.currentTarget as HTMLElement
-                            target.setPointerCapture(e.pointerId)
-                            setIsSelectingTime(true)
-                            handleCalendarSelection(dayIndex, slotIndex, true)
-                          }
-                        }}
-                        onPointerEnter={() => {
-                          if (isSelectingTime && !isDisabled) {
-                            handleCalendarSelection(dayIndex, slotIndex, false)
-                          }
-                        }}
+                        data-cell-id={`${dayIndex}-${slotIndex}`}
                       >
                         {isLocked && slotIndex % 4 === 0 && (
-                          <span>{slotData.label}</span>
+                          <span className="pointer-events-none">{slotData.label}</span>
                         )}
                       </div>
                     )
